@@ -1,0 +1,11 @@
+{
+	"extends": "./tsconfig.build.json",
+	"include": ["src/**/*.ts"],
+	"exclude": ["node_modules/**"],
+	"compilerOptions": {
+		"types": ["jest", "node"],
+		"moduleResolution": "node",
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true
+	}
+}
