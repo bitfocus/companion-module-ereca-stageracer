@@ -1,6 +1,5 @@
 import { InstanceBase, runEntrypoint, SomeCompanionConfigField } from '@companion-module/base'
 import { GetConfigFields, type ModuleConfig } from './config.js'
-import { UpdateVariableDefinitions } from './variables.js'
 import { UpgradeScripts } from './upgrades.js'
 import { UpdateActions } from './actions.js'
 import { UpdateFeedbacks } from './feedbacks.js'
@@ -56,10 +55,6 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		UpdateFeedbacks(this)
 	}
 
-	updateVariableDefinitions(): void {
-		UpdateVariableDefinitions(this)
-	}
-
 	updatePresets(): void {
 		UpdatePresets(this)
 	}
@@ -67,7 +62,6 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	updatePorts(): void {
 		this.updateActions()
 		this.updateFeedbacks()
-		this.updateVariableDefinitions()
 		this.updatePresets()
 	}
 

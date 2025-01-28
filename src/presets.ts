@@ -1,10 +1,13 @@
 import { combineRgb, CompanionPresetDefinitions } from '@companion-module/base'
+import type { CompanionVariableDefinition, CompanionVariableValues } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
 import type { Node, Protocol, Io } from './protocol.js'
 import { ioDir } from './protocol.js'
 
 export function UpdatePresets(self: ModuleInstance): void {
 	const presets: CompanionPresetDefinitions = {}
+	const vdef: CompanionVariableDefinition[] = []
+	const vval: CompanionVariableValues = {}
 
 	presets['take'] = {
 		category: 'Actions',
@@ -83,15 +86,25 @@ export function UpdatePresets(self: ModuleInstance): void {
 			const ios = node.ios_by_proto[proto]
 
 			for (const [idx, io] of ios.entries()) {
-				buildIoPreset(presets, node, proto, io, [idx + 1])
+				buildIoPreset(presets, vdef, vval, node, proto, io, [idx + 1])
 			}
 		}
 	}
 
+	self.setVariableDefinitions(vdef)
+	self.setVariableValues(vval)
 	self.setPresetDefinitions(presets)
 }
 
-function buildIoPreset(presets: CompanionPresetDefinitions, node: Node, proto: Protocol, io: Io, indices: number[]) {
+function buildIoPreset(
+	presets: CompanionPresetDefinitions,
+	vdef: CompanionVariableDefinition[],
+	vval: CompanionVariableValues,
+	node: Node,
+	proto: Protocol,
+	io: Io,
+	indices: number[],
+) {
 	if (!io.en || (ioDir(io) !== 'IN' && ioDir(io) !== 'OUT')) {
 		return
 	}
@@ -120,6 +133,8 @@ function buildIoPreset(presets: CompanionPresetDefinitions, node: Node, proto: P
 		io_proto = 'DANTE'
 	}
 
+	const io_name_var = `io_name_${path}`
+
 	// We only care about DANTE_CH protocols, not the DANTE dummy node
 	if (io.proto !== 'DANTE') {
 		presets[`select_io_${path}`] = {
@@ -127,7 +142,7 @@ function buildIoPreset(presets: CompanionPresetDefinitions, node: Node, proto: P
 			name: `Select ${name}: ${io.name}`,
 			type: 'button',
 			style: {
-				text: `$(stageracer:io_name_${path})`,
+				text: `$(stageracer:${io_name_var})`,
 				size: '18',
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
@@ -164,11 +179,18 @@ function buildIoPreset(presets: CompanionPresetDefinitions, node: Node, proto: P
 		}
 	}
 
+	vdef.push({
+		name: `Name of port ${name}`,
+		variableId: io_name_var,
+	})
+
+	vval[io_name_var] = io.name || `${proto}/${indices.join('/')}`
+
 	// Recursively add children
 	for (const [idx, cio] of io.children.entries()) {
 		const cidx = indices.slice()
 		cidx.push(idx + 1)
 
-		buildIoPreset(presets, node, proto, cio, cidx)
+		buildIoPreset(presets, vdef, vval, node, proto, cio, cidx)
 	}
 }
