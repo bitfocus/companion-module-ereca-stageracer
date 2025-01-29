@@ -38,12 +38,12 @@ export class RacerProto {
 		}
 
 		if (!self.config.host || !self.config.apiToken) {
-			await self.updateStatus(InstanceStatus.Disconnected, 'Host or API token missing')
+			await self.setStatus(InstanceStatus.Disconnected, 'Host or API token missing')
 			return
 		}
 
 		try {
-			await self.updateStatus(InstanceStatus.Connecting)
+			await self.setStatus(InstanceStatus.Connecting)
 			const req = await this.fetch('/api/meta')
 
 			let res = (await req.json()) as ApiMeta
@@ -57,9 +57,9 @@ export class RacerProto {
 			}
 			this.mode = res.mode
 
-			await self.updateStatus(InstanceStatus.Ok, `${self.config.host}: ${res.version}`)
+			await self.setStatus(InstanceStatus.Ok, `${self.config.host}: ${res.version}`)
 		} catch (e) {
-			await self.updateStatus(InstanceStatus.Disconnected, `login failed: ${e}`)
+			await self.setStatus(InstanceStatus.Disconnected, `login failed: ${e}`)
 
 			this.reconnect_tout = setTimeout(() => this.init(), 3000)
 			return
@@ -68,13 +68,31 @@ export class RacerProto {
 		this.pollTransient()
 	}
 
-	public async pollTransient() {
+	async pollTransient() {
 		const self = this.module
 
 		if (this.poll_tout) {
 			clearTimeout(this.poll_tout)
 			this.poll_tout = undefined
 		}
+
+		try {
+			await this.fetchTransient()
+			await self.setStatus(InstanceStatus.Ok)
+		} catch (e) {
+			console.log(`Failed to process transient data: ${e}`)
+			await self.setStatus(InstanceStatus.Disconnected, `${e}`)
+		}
+
+		// Recursively call this method after the polling interval
+		if (this.poll_tout) {
+			clearTimeout(this.poll_tout)
+		}
+		this.poll_tout = setTimeout(() => this.pollTransient(), this.module.config.pollInterval)
+	}
+
+	async fetchTransient() {
+		const self = this.module
 
 		const req = await this.fetch('/srnet/transient')
 
@@ -143,12 +161,6 @@ export class RacerProto {
 
 			this.module.updatePorts()
 		}
-
-		// Recursively call this method after the polling interval
-		if (this.poll_tout) {
-			clearTimeout(this.poll_tout)
-		}
-		this.poll_tout = setTimeout(() => this.pollTransient(), this.module.config.pollInterval)
 	}
 
 	addIo(node: Node, parent_proto: Protocol, io: Io, indices: number[]) {
@@ -208,7 +220,6 @@ export class RacerProto {
 
 		if (!res.ok) {
 			throw new Error(`${fetchopts.method} ${url} failed: ${res.status} ${res.statusText}`)
-			await self.updateStatus(InstanceStatus.Disconnected, '${res.statusText}')
 		}
 
 		return res
@@ -308,14 +319,13 @@ export class IoData {
 		return 'IDLE'
 	}
 
-        public isInput(): boolean {
-            return this.direction() == 'IN'
-        }
+	public isInput(): boolean {
+		return this.direction() == 'IN'
+	}
 
-        public isOutput(): boolean {
-            return this.direction() == 'OUT'
-        }
-
+	public isOutput(): boolean {
+		return this.direction() == 'OUT'
+	}
 
 	public displayProto(): string {
 		const proto_map: { [key: string]: string } = {
@@ -332,5 +342,4 @@ export class IoData {
 
 		return proto_map[this.protocol] || this.protocol
 	}
-
 }

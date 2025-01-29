@@ -1,4 +1,5 @@
 import { InstanceBase, runEntrypoint, SomeCompanionConfigField, DropdownChoice } from '@companion-module/base'
+import { InstanceStatus } from '@companion-module/base'
 import { GetConfigFields, type ModuleConfig } from './config.js'
 import { UpgradeScripts } from './upgrades.js'
 import { UpdateActions } from './actions.js'
@@ -10,8 +11,8 @@ import { RacerProto, Node, IoKey, IoData } from './protocol.js'
 export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig // Setup in init()
 	proto: RacerProto | null = null
-
-        selected_destination: IoKey | null = null
+	cur_status: [InstanceStatus, string | undefined] | undefined = undefined
+	selected_destination: IoKey | null = null
 
 	constructor(internal: unknown) {
 		super(internal)
@@ -43,6 +44,16 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 		this.proto = new RacerProto(this)
 		this.proto.init()
+	}
+
+	async setStatus(status: InstanceStatus, desc: string | undefined = undefined) {
+		if (this.cur_status && this.cur_status[0] == status && this.cur_status[1] == desc) {
+			return
+		}
+
+		this.cur_status = [status, desc]
+
+		await this.updateStatus(status, desc)
 	}
 
 	// Return config fields for web config
@@ -101,14 +112,16 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			.filter((f) => f !== '')
 	}
 
-        outputChoices(): DropdownChoice[] {
-            const ios = Object.values(this.ios).filter(io => io.isOutput()).sort((a, b) => a.key.localeCompare(b.key));
+	outputChoices(): DropdownChoice[] {
+		const ios = Object.values(this.ios)
+			.filter((io) => io.isOutput())
+			.sort((a, b) => a.key.localeCompare(b.key))
 
-            return ios.map(io => ({
-                id: io.key,
-                label: io.name,
-            }));
-        }
+		return ios.map((io) => ({
+			id: io.key,
+			label: io.name,
+		}))
+	}
 }
 
 runEntrypoint(ModuleInstance, UpgradeScripts)
