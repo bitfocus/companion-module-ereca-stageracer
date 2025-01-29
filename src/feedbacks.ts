@@ -1,33 +1,32 @@
-import { combineRgb } from '@companion-module/base'
+import { combineRgb, CompanionFeedbackDefinitions } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
 
 export function UpdateFeedbacks(self: ModuleInstance): void {
-	self.setFeedbackDefinitions({
-		ChannelState: {
-			name: 'Example Feedback',
-			type: 'boolean',
-			defaultStyle: {
-				bgcolor: combineRgb(255, 0, 0),
-				color: combineRgb(0, 0, 0),
-			},
-			options: [
-				{
-					id: 'num',
-					type: 'number',
-					label: 'Test',
-					default: 5,
-					min: 0,
-					max: 10,
-				},
-			],
-			callback: (feedback) => {
-				console.log('Hello world!', feedback.options.num)
-				if (Number(feedback.options.num) > 5) {
-					return true
-				} else {
-					return false
-				}
-			},
-		},
-	})
+    const feedbacks: CompanionFeedbackDefinitions = {}
+
+    const choices_out = self.outputChoices();
+
+    feedbacks['selected_out'] = {
+                type: 'boolean',
+                name: 'Change background color by selected destination',
+                description: 'If the output specified is selected, change background color of the bank',
+                defaultStyle: {
+                        color: combineRgb(0, 0, 0),
+                        bgcolor: combineRgb(255, 255, 0),
+                },
+                options: [
+                        {
+                                type: 'dropdown',
+                                label: 'Output',
+                                id: 'output',
+                                default: 0,
+                                choices: choices_out,
+                        },
+                ],
+                callback: (feedback) => {
+                        return feedback.options.io_key == self.selected_destination
+                },
+        }
+
+        self.setFeedbackDefinitions(feedbacks);
 }

@@ -1,4 +1,4 @@
-import { InstanceBase, runEntrypoint, SomeCompanionConfigField } from '@companion-module/base'
+import { InstanceBase, runEntrypoint, SomeCompanionConfigField, DropdownChoice } from '@companion-module/base'
 import { GetConfigFields, type ModuleConfig } from './config.js'
 import { UpgradeScripts } from './upgrades.js'
 import { UpdateActions } from './actions.js'
@@ -10,6 +10,8 @@ import { RacerProto, Node, IoKey, IoData } from './protocol.js'
 export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig // Setup in init()
 	proto: RacerProto | null = null
+
+        selected_destination: IoKey | null = null
 
 	constructor(internal: unknown) {
 		super(internal)
@@ -98,6 +100,15 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			.map((g) => g.toUpperCase().trim())
 			.filter((f) => f !== '')
 	}
+
+        outputChoices(): DropdownChoice[] {
+            const ios = Object.values(this.ios).filter(io => io.isOutput()).sort((a, b) => a.key.localeCompare(b.key));
+
+            return ios.map(io => ({
+                id: io.key,
+                label: io.name,
+            }));
+        }
 }
 
 runEntrypoint(ModuleInstance, UpgradeScripts)

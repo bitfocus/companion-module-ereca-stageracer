@@ -308,6 +308,15 @@ export class IoData {
 		return 'IDLE'
 	}
 
+        public isInput(): boolean {
+            return this.direction() == 'IN'
+        }
+
+        public isOutput(): boolean {
+            return this.direction() == 'OUT'
+        }
+
+
 	public displayProto(): string {
 		const proto_map: { [key: string]: string } = {
 			ANALO_IN: 'ANALOG',
@@ -323,4 +332,5 @@ export class IoData {
 
 		return proto_map[this.protocol] || this.protocol
 	}
+
 }
