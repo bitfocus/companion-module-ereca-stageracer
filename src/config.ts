@@ -31,9 +31,9 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			id: 'apiToken',
 			label: 'API token',
 			width: 6,
-			tooltip: 'API token starting with "SRK:" followed by a code',
+			tooltip: 'API token starting with "SRK_" followed by a code',
 			required: true,
-			regex: '^SRK:[a-zA-Z0-9]{10,}$',
+			regex: '^SRK_[a-zA-Z0-9]{10,}$',
 		},
 		{
 			type: 'number',

@@ -1,13 +1,8 @@
 import { combineRgb, CompanionPresetDefinitions } from '@companion-module/base'
-import type { CompanionVariableDefinition, CompanionVariableValues } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
-import type { Node, Protocol, Io } from './protocol.js'
-import { ioDir } from './protocol.js'
 
 export function UpdatePresets(self: ModuleInstance): void {
 	const presets: CompanionPresetDefinitions = {}
-	const vdef: CompanionVariableDefinition[] = []
-	const vval: CompanionVariableValues = {}
 
 	presets['take'] = {
 		category: 'Actions',
@@ -75,81 +70,33 @@ export function UpdatePresets(self: ModuleInstance): void {
 		],
 	}
 
-	const proto_filter = self.proto_filter
+	for (const io of Object.values(self.ios)) {
+		const dir = io.direction()
 
-	for (const node of Object.values(self.nodes)) {
-		const protos = Object.keys(node.ios_by_proto)
-			.filter((proto) => !proto_filter.has(proto))
-			.sort()
-
-		for (const proto of protos) {
-			const ios = node.ios_by_proto[proto]
-
-			for (const [idx, io] of ios.entries()) {
-				buildIoPreset(presets, vdef, vval, node, proto, io, [idx + 1])
-			}
+		let bg_select_col = combineRgb(255, 255, 0)
+		if (dir === 'IN') {
+			bg_select_col = combineRgb(255, 255, 255)
 		}
-	}
 
-	self.setVariableDefinitions(vdef)
-	self.setVariableValues(vval)
-	self.setPresetDefinitions(presets)
-}
+		let options = {
+			io_key: io.key,
+		}
 
-function buildIoPreset(
-	presets: CompanionPresetDefinitions,
-	vdef: CompanionVariableDefinition[],
-	vval: CompanionVariableValues,
-	node: Node,
-	proto: Protocol,
-	io: Io,
-	indices: number[],
-) {
-	if (!io.en || (ioDir(io) !== 'IN' && ioDir(io) !== 'OUT')) {
-		return
-	}
+		const dproto = io.displayProto()
 
-	// We use the ember ID so that it will still work when we load the
-	// config on different machines
-	const path = `E${node.ember_id}_${proto}_${indices.join('_')}`
-	const name = `${node.name}/${proto}/${indices.join('/')}`
-
-	let bg_select_col = combineRgb(255, 255, 255)
-
-	let options = {
-		io_path: path,
-	}
-
-	let io_proto = io.proto
-
-	if (io_proto == 'ANALO_IN' || io_proto == 'ANALO_OUT') {
-		io_proto = 'ANALO'
-	}
-	if (io_proto == 'GPI' || io_proto == 'GPO') {
-		io_proto = 'GPIO'
-	}
-
-	if (io_proto == 'DANTE_CH') {
-		io_proto = 'DANTE'
-	}
-
-	const io_name_var = `io_name_${path}`
-
-	// We only care about DANTE_CH protocols, not the DANTE dummy node
-	if (io.proto !== 'DANTE') {
-		presets[`select_io_${path}`] = {
-			category: `${io_proto} ${ioDir(io)}`,
-			name: `Select ${name}: ${io.name}`,
+		presets[`select_io_${io.key}`] = {
+			category: `IO ${dproto}_${dir}`,
+			name: `Select ${io.desc}: ${io.name}`,
 			type: 'button',
 			style: {
-				text: `$(stageracer:${io_name_var})`,
+				text: `$(stageracer:io_name_${io.key})`,
 				size: '18',
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
 			},
 			feedbacks: [
 				{
-					feedbackId: `selected_${ioDir(io).toLowerCase()}`,
+					feedbackId: `selected_${dir.toLowerCase()}`,
 					style: {
 						bgcolor: bg_select_col,
 						color: combineRgb(0, 0, 0),
@@ -157,7 +104,7 @@ function buildIoPreset(
 					options: options,
 				},
 				{
-					feedbackId: `take_tally_${ioDir(io).toLowerCase()}`,
+					feedbackId: `take_tally_${dir.toLowerCase()}`,
 					style: {
 						bgcolor: combineRgb(255, 0, 0),
 						color: combineRgb(255, 255, 255),
@@ -169,7 +116,7 @@ function buildIoPreset(
 				{
 					down: [
 						{
-							actionId: `select_${ioDir(io).toLowerCase()}`,
+							actionId: `select_${dir.toLowerCase()}`,
 							options: options,
 						},
 					],
@@ -179,18 +126,67 @@ function buildIoPreset(
 		}
 	}
 
-	vdef.push({
-		name: `Name of port ${name}`,
-		variableId: io_name_var,
-	})
-
-	vval[io_name_var] = io.name || `${proto}/${indices.join('/')}`
-
-	// Recursively add children
-	for (const [idx, cio] of io.children.entries()) {
-		const cidx = indices.slice()
-		cidx.push(idx + 1)
-
-		buildIoPreset(presets, vdef, vval, node, proto, cio, cidx)
-	}
+	self.setPresetDefinitions(presets)
 }
+
+// function buildIoPreset(
+// 	presets: CompanionPresetDefinitions,
+// 	vdef: CompanionVariableDefinition[],
+// 	vval: CompanionVariableValues,
+// 	node: Node,
+// 	proto: Protocol,
+// 	io: Io,
+// 	indices: number[],
+// ) {
+// 	if (!io.en || (ioDir(io) !== 'IN' && ioDir(io) !== 'OUT')) {
+// 		return
+// 	}
+//
+// 	// We use the ember ID so that it will still work when we load the
+// 	// config on different machines
+// 	const path = `E${node.ember_id}_${proto}_${indices.join('_')}`
+// 	const name = `${node.name}/${proto}/${indices.join('/')}`
+//
+// 	let bg_select_col = combineRgb(255, 255, 255)
+//
+// 	let options = {
+// 		io_path: path,
+// 	}
+//
+// 	let io_proto = io.proto
+//
+//         const proto_map: {[key: string]: string} = {
+//             'ANALO_IN': 'ANALOG',
+//             'ANALO_OUT': 'ANALOG',
+//             'GPI': 'GPIO',
+//             'GPO': 'GPIO',
+//             'DANTE_CH': 'DANTE',
+//             'SDI_PV': 'PREVIEW',
+//             'SDI_ACH': 'SDI_AUDIO',
+//             'GENLOCK': 'GL',
+//             'MADI_CH': 'MADI_AUDIO',
+//         };
+//
+//         io_proto = proto_map[io_proto] || io_proto;
+//
+// 	const io_name_var = `io_name_${path}`
+//
+// 	// We only care about DANTE_CH protocols, not the DANTE dummy node
+// 	if (io.proto !== 'DANTE') {
+// 	}
+//
+// 	vdef.push({
+// 		name: `Name of port ${name}`,
+// 		variableId: io_name_var,
+// 	})
+//
+// 	vval[io_name_var] = io.name || `${proto} ${indices.join('/')}`
+//
+// 	// Recursively add children
+// 	for (const [idx, cio] of io.children.entries()) {
+// 		const cidx = indices.slice()
+// 		cidx.push(idx + 1)
+//
+// 		buildIoPreset(presets, vdef, vval, node, proto, cio, cidx)
+// 	}
+// }

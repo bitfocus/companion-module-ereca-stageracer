@@ -4,7 +4,8 @@ import { UpgradeScripts } from './upgrades.js'
 import { UpdateActions } from './actions.js'
 import { UpdateFeedbacks } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
-import { RacerProto, Node } from './protocol.js'
+import { UpdateVariableDefinitions } from './variables.js'
+import { RacerProto, Node, IoKey, IoData } from './protocol.js'
 
 export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig // Setup in init()
@@ -59,10 +60,15 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		UpdatePresets(this)
 	}
 
+	updateVariableDefinitions(): void {
+		UpdateVariableDefinitions(this)
+	}
+
 	updatePorts(): void {
 		this.updateActions()
 		this.updateFeedbacks()
 		this.updatePresets()
+		this.updateVariableDefinitions()
 	}
 
 	get nodes(): Node[] {
@@ -78,8 +84,19 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		return nodes
 	}
 
-	get proto_filter(): Set<string> {
-		return new Set((this.config.protoFilter || '').split(',').map((g) => g.toUpperCase().trim()))
+	get ios(): { [key: IoKey]: IoData } {
+		if (!this.proto) {
+			throw new Error('No protocol!')
+		}
+
+		return this.proto.ios
+	}
+
+	get protoFilter(): string[] {
+		return (this.config.protoFilter || '')
+			.split(',')
+			.map((g) => g.toUpperCase().trim())
+			.filter((f) => f !== '')
 	}
 }
 

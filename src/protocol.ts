@@ -7,6 +7,7 @@ export class RacerProto {
 	reconnect_tout: NodeJS.Timeout | undefined = undefined
 	poll_tout: NodeJS.Timeout | undefined = undefined
 	mode: string = 'standard'
+	ios: { [key: IoKey]: IoData } = {}
 
 	nodes: { [key: NodeId]: Node } = {}
 
@@ -27,7 +28,7 @@ export class RacerProto {
 	}
 
 	public async init(): Promise<void> {
-		const module = this.module
+		const self = this.module
 
 		this.nodes = {}
 
@@ -36,13 +37,13 @@ export class RacerProto {
 			this.reconnect_tout = undefined
 		}
 
-		if (!module.config.host || !module.config.apiToken) {
-			await module.updateStatus(InstanceStatus.Disconnected, 'Host or API token missing')
+		if (!self.config.host || !self.config.apiToken) {
+			await self.updateStatus(InstanceStatus.Disconnected, 'Host or API token missing')
 			return
 		}
 
 		try {
-			await module.updateStatus(InstanceStatus.Connecting)
+			await self.updateStatus(InstanceStatus.Connecting)
 			const req = await this.fetch('/api/meta')
 
 			let res = (await req.json()) as ApiMeta
@@ -51,15 +52,14 @@ export class RacerProto {
 				throw new Error(`Invalid API version ${res.protocol}`)
 			}
 
-			if (!['standard'].includes(res.mode)) {
+			if (!['standard', 'simulator'].includes(res.mode)) {
 				throw new Error(`Unsupported API mode ${res.mode}`)
 			}
 			this.mode = res.mode
 
-			await module.updateStatus(InstanceStatus.Ok, `${module.config.host}: ${res.version}`)
+			await self.updateStatus(InstanceStatus.Ok, `${self.config.host}: ${res.version}`)
 		} catch (e) {
-			console.log(e)
-			await module.updateStatus(InstanceStatus.Disconnected, `login failed: ${e}`)
+			await self.updateStatus(InstanceStatus.Disconnected, `login failed: ${e}`)
 
 			this.reconnect_tout = setTimeout(() => this.init(), 3000)
 			return
@@ -69,6 +69,8 @@ export class RacerProto {
 	}
 
 	public async pollTransient() {
+		const self = this.module
+
 		if (this.poll_tout) {
 			clearTimeout(this.poll_tout)
 			this.poll_tout = undefined
@@ -89,7 +91,7 @@ export class RacerProto {
 			if (!node_tokens.find((t) => t[0] == nid)) {
 				delete this.nodes[nid]
 				needs_port_refresh = true
-				this.module.log('debug', `Dropping node ${nid}`)
+				self.log('debug', `Dropping node ${nid}`)
 			}
 		}
 
@@ -107,9 +109,38 @@ export class RacerProto {
 				await this.fetchNode(nid)
 				needs_port_refresh = true
 			}
+		} else if (this.mode == 'simulator') {
+			if (nodes_to_fetch.length) {
+				// with the simulator we always fetch all nodes at once
+				const req = await this.fetch('/srnet/nodes')
+
+				this.nodes = (await req.json()) as { [key: NodeId]: Node }
+				needs_port_refresh = true
+			}
 		}
 
 		if (needs_port_refresh) {
+			// Reload all IOs.
+			//
+			// XXX Maybe we could use partial updates for performance?
+			this.ios = {}
+
+			const proto_filter = self.protoFilter
+
+			for (const node of Object.values(this.nodes)) {
+				const protos = Object.keys(node.ios_by_proto)
+					.filter((proto) => !proto_filter.some((pf) => proto.includes(pf)))
+					.sort()
+
+				for (const proto of protos) {
+					const ios = node.ios_by_proto[proto]
+
+					for (const [idx, io] of ios.entries()) {
+						this.addIo(node, proto, io, [idx + 1])
+					}
+				}
+			}
+
 			this.module.updatePorts()
 		}
 
@@ -120,26 +151,50 @@ export class RacerProto {
 		this.poll_tout = setTimeout(() => this.pollTransient(), this.module.config.pollInterval)
 	}
 
+	addIo(node: Node, parent_proto: Protocol, io: Io, indices: number[]) {
+		const iod = new IoData(node, io, parent_proto, indices)
+
+		const dir = iod.direction()
+
+		if (!iod.enabled || (dir !== 'IN' && dir !== 'OUT')) {
+			return
+		}
+
+		// We only care about DANTE_CH protocols, not the DANTE dummy node
+		if (iod.protocol !== 'DANTE') {
+			this.ios[iod.key] = iod
+		}
+
+		// Recursively add children
+		for (const [idx, cio] of io.children.entries()) {
+			const cidx = indices.slice()
+			cidx.push(idx + 1)
+
+			this.addIo(node, parent_proto, cio, cidx)
+		}
+	}
+
 	public async fetch(
 		endpoint: string,
 		method: string = 'GET',
 		content_type: string = 'application/json',
 	): Promise<Response> {
-		const prefix = this.module.config.useHttps ? 'https://' : 'http://'
-		const host = this.module.config.host
+		const self = this.module
+		const prefix = self.config.useHttps ? 'https://' : 'http://'
+		const host = self.config.host
 		const url = `${prefix}${host}${endpoint}`
 
 		const fetchopts: RequestInit = {
 			method: method,
 			headers: {
 				'Content-Type': content_type,
-				Authorization: `Bearer ${this.module.config.apiToken}`,
+				Authorization: `Bearer ${self.config.apiToken}`,
 			},
 		}
 
 		// We accept self-signed certificates, unless we're connecting to
 		// the sim env
-		if (this.module.config.useHttps && host !== 'sim.ereca.fr') {
+		if (self.config.useHttps && host !== 'sim.ereca.fr') {
 			fetchopts.dispatcher = new Agent({
 				connect: {
 					rejectUnauthorized: false,
@@ -147,13 +202,13 @@ export class RacerProto {
 			})
 		}
 
-		// this.module.log('debug', `${fetchopts.method} ${url}`)
+		// self.log('debug', `${fetchopts.method} ${url}`)
 
 		let res = await fetch(url, fetchopts)
 
 		if (!res.ok) {
 			throw new Error(`${fetchopts.method} ${url} failed: ${res.status} ${res.statusText}`)
-			await this.module.updateStatus(InstanceStatus.Disconnected, '${res.statusText}')
+			await self.updateStatus(InstanceStatus.Disconnected, '${res.statusText}')
 		}
 
 		return res
@@ -206,18 +261,66 @@ export type Io = {
 	children: Io[]
 }
 
-export function ioDir(io: Io): string {
-	if (typeof io.dir === 'string') {
-		return io.dir
+export type IoKey = string
+
+export class IoData {
+	io: Io
+	key: IoKey
+	desc: string
+	node_id: NodeId
+	name: string
+
+	public get enabled(): boolean {
+		return this.io.en
 	}
 
-	if (io.dir.OUT) {
-		return 'OUT'
+	public get protocol(): Protocol {
+		return this.io.proto
 	}
 
-	if (io.dir.BIDIR) {
-		return 'BIDIR'
+	constructor(node: Node, io: Io, parent_proto: Protocol, indices: number[]) {
+		this.io = io
+		this.key = `E${node.ember_id}_${parent_proto}_${indices.join('_')}`
+		this.desc = `${node.name}/${parent_proto}/${indices.join('/')}`
+		this.node_id = node.id
+		this.name = io.name
+
+		if (!this.name) {
+			this.name = `${this.displayProto()} ${indices.join('/')}`
+		}
 	}
 
-	return 'IDLE'
+	public direction(): string {
+		const io = this.io
+
+		if (typeof io.dir === 'string') {
+			return io.dir
+		}
+
+		if (io.dir.OUT) {
+			return 'OUT'
+		}
+
+		if (io.dir.BIDIR) {
+			return 'BIDIR'
+		}
+
+		return 'IDLE'
+	}
+
+	public displayProto(): string {
+		const proto_map: { [key: string]: string } = {
+			ANALO_IN: 'ANALOG',
+			ANALO_OUT: 'ANALOG',
+			GPI: 'GPIO',
+			GPO: 'GPIO',
+			DANTE_CH: 'DANTE',
+			SDI_PV: 'PREVIEW',
+			SDI_ACH: 'SDI_AUDIO',
+			GENLOCK: 'GL',
+			MADI_CH: 'MADI_AUDIO',
+		}
+
+		return proto_map[this.protocol] || this.protocol
+	}
 }
