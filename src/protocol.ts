@@ -8,6 +8,7 @@ export class RacerProto {
 	poll_tout: NodeJS.Timeout | undefined = undefined
 	mode: string = 'standard'
 	ios: { [key: IoKey]: IoData } = {}
+	iokey_by_path: { [key: Path]: IoKey } = {}
 
 	nodes: { [key: NodeId]: Node } = {}
 
@@ -80,7 +81,7 @@ export class RacerProto {
 			await this.fetchTransient()
 			await self.setStatus(InstanceStatus.Ok)
 		} catch (e) {
-			console.log(`Failed to process transient data: ${e}`)
+			self.log('error', `Failed to process transient data: ${e}`)
 			await self.setStatus(InstanceStatus.Disconnected, `${e}`)
 		}
 
@@ -142,6 +143,7 @@ export class RacerProto {
 			//
 			// XXX Maybe we could use partial updates for performance?
 			this.ios = {}
+			this.iokey_by_path = {}
 
 			const proto_filter = self.protoFilter
 
@@ -157,6 +159,22 @@ export class RacerProto {
 						this.addIo(node, proto, io, [idx + 1])
 					}
 				}
+			}
+
+			// Refresh source keys
+			for (const io of Object.values(this.ios)) {
+				const src_path = io.sourcePath()
+
+				if (!src_path) {
+					continue
+				}
+
+				const src_key = this.iokey_by_path[src_path]
+
+				if (!src_key) {
+					continue
+				}
+				io.src_key = src_key
 			}
 
 			this.module.updatePorts()
@@ -175,6 +193,7 @@ export class RacerProto {
 		// We only care about DANTE_CH protocols, not the DANTE dummy node
 		if (iod.protocol !== 'DANTE') {
 			this.ios[iod.key] = iod
+			this.iokey_by_path[iod.path] = iod.key
 		}
 
 		// Recursively add children
@@ -200,7 +219,7 @@ export class RacerProto {
 			method: method,
 			headers: {
 				'Content-Type': content_type,
-				Authorization: `Bearer ${self.config.apiToken}`,
+				Authorization: `Bearer ${self.config.apiToken.trim()}`,
 			},
 		}
 
@@ -233,6 +252,10 @@ export class RacerProto {
 
 		this.module.log('debug', `Fetched ${nid} '${node.name}'`)
 	}
+
+	public async route(src: IoData, dst: IoData) {
+		console.log('todo route', src.path, dst.path)
+	}
 }
 
 export type NodeId = string
@@ -240,7 +263,7 @@ export type SyncToken = number
 export type Protocol = string
 export type Path = string
 export type Priority = string
-export type OutputSource = 'none' | ['locked' | 'unlocked', Path]
+export type OutputSource = 'none' | { locked?: Path; unlocked?: Path }
 export type IoDirection = string | { OUT?: [OutputSource, Priority]; BIDIR?: [OutputSource, Priority] }
 
 type ApiMeta = {
@@ -280,6 +303,8 @@ export class IoData {
 	desc: string
 	node_id: NodeId
 	name: string
+	path: Path
+	src_key: IoKey | undefined
 
 	public get enabled(): boolean {
 		return this.io.en
@@ -292,6 +317,7 @@ export class IoData {
 	constructor(node: Node, io: Io, parent_proto: Protocol, indices: number[]) {
 		this.io = io
 		this.key = `E${node.ember_id}_${parent_proto}_${indices.join('_')}`
+		this.path = `${node.id}/${parent_proto}/${indices.join('/')}`
 		this.desc = `${node.name}/${parent_proto}/${indices.join('/')}`
 		this.node_id = node.id
 		this.name = io.name
@@ -317,6 +343,22 @@ export class IoData {
 		}
 
 		return 'IDLE'
+	}
+
+	public sourcePath(): Path | undefined {
+		const io = this.io
+
+		if (typeof io.dir === 'string') {
+			return undefined
+		}
+
+		const out_cfg = io.dir?.OUT ?? io.dir?.BIDIR
+
+		if (!out_cfg || typeof out_cfg[0] == 'string') {
+			return undefined
+		}
+
+		return out_cfg[0]?.locked ?? out_cfg[0]?.unlocked
 	}
 
 	public isInput(): boolean {

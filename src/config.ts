@@ -31,9 +31,10 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			id: 'apiToken',
 			label: 'API token',
 			width: 6,
-			tooltip: 'API token starting with "SRK_" followed by a code',
+			tooltip: 'Defaults to SRK_ERECA on real hardware.',
 			required: true,
-			regex: '^SRK_[a-zA-Z0-9]{10,}$',
+			regex: '^SRK_[a-zA-Z0-9]+$',
+			default: 'SRK_ERECA',
 		},
 		{
 			type: 'number',

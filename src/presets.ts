@@ -49,7 +49,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 		},
 		feedbacks: [
 			{
-				feedbackId: 'clear',
+				feedbackId: 'take',
 				style: {
 					bgcolor: combineRgb(0, 0, 0),
 					color: combineRgb(255, 255, 255),
