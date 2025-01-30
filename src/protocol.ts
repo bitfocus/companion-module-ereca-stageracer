@@ -289,6 +289,31 @@ export class RacerProto {
 		// Schedule a poll in short notice to refresh our routes etc
 		this.scheduleTransient(200)
 	}
+
+	public async disconnect(dst: IoData) {
+		const self = this.module
+		const xpoint = {
+			input: dst.sourcePath(),
+			output: dst.path,
+		}
+
+		const xpoint_action = {
+			action: 'delete',
+			points: [xpoint],
+		}
+
+		try {
+			await this.fetch('/srnet/grid/crosspoints', {
+				method: 'POST',
+				body: xpoint_action,
+			})
+		} catch (e) {
+			self.log('error', `Failed to create crosspoint ${xpoint.input} -> ${xpoint.output}: ${e}`)
+		}
+
+		// Schedule a poll in short notice to refresh our routes etc
+		this.scheduleTransient(200)
+	}
 }
 
 export type NodeId = string

@@ -14,7 +14,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	curStatus: [InstanceStatus, string | undefined] | undefined = undefined
 	selectedDestination: IoKey | undefined = undefined
 	// When using "take", this contains the pending routing instructions
-	pendingRoute: { src: IoKey; dst: IoKey; compatible: boolean } | undefined = undefined
+	pendingRoute: { src: IoKey | null; dst: IoKey; compatible: boolean } | undefined = undefined
 
 	constructor(internal: unknown) {
 		super(internal)
@@ -172,6 +172,21 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.checkFeedbacks('take', 'take_incompatible', 'selected_in', 'selected_out', 'take_tally_in', 'take_tally_out')
 	}
 
+	async queueDisconnect(dst: IoData) {
+		if (this.config.take) {
+			this.pendingRoute = {
+				src: null,
+				dst: dst.key,
+				compatible: true,
+			}
+		} else {
+			this.pendingRoute = undefined
+			await this.protocol.disconnect(dst)
+		}
+
+		this.checkFeedbacks('take', 'take_incompatible', 'selected_in', 'selected_out', 'take_tally_in', 'take_tally_out')
+	}
+
 	async applyPendingRoute() {
 		if (!this.pendingRoute || !this.pendingRoute.compatible) {
 			return
@@ -180,19 +195,24 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		const route = this.pendingRoute
 		await this.clearPendingRoute()
 
-		const src = this.ios[route.src]
 		const dst = this.ios[route.dst]
-
-		if (!src) {
-			this.log('error', `Can't find IO ${route.src}`)
-			return
-		}
 		if (!dst) {
 			this.log('error', `Can't find IO ${route.dst}`)
 			return
 		}
 
-		return this.protocol.route(src, dst)
+		if (route.src) {
+			const src = this.ios[route.src]
+
+			if (!src) {
+				this.log('error', `Can't find IO ${route.src}`)
+				return
+			}
+
+			return this.protocol.route(src, dst)
+		} else {
+			await this.protocol.disconnect(dst)
+		}
 	}
 
 	async clearPendingRoute() {

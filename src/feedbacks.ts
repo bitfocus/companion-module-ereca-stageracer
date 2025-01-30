@@ -59,8 +59,12 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 		callback: (feedback) => {
 			const dst_io = self.selectedDestinationIo()
 
-			if (!dst_io || !dst_io.src_key) {
+			if (!dst_io) {
 				return false
+			}
+
+			if (!dst_io.src_key) {
+				return feedback.options.io_key == 'NILIO'
 			}
 
 			return feedback.options.io_key == dst_io.src_key
@@ -113,6 +117,10 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 
 			if (self.selectedDestination !== self.pendingRoute.dst) {
 				return false
+			}
+
+			if (!self.pendingRoute.src) {
+				return feedback.options.io_key == 'NILIO'
 			}
 
 			return feedback.options.io_key == self.pendingRoute.src

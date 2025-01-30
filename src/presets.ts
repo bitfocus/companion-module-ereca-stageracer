@@ -70,6 +70,53 @@ export function UpdatePresets(self: ModuleInstance): void {
 		],
 	}
 
+	presets[`select_io_disconnected`] = {
+		category: `Pseudo-IOs`,
+		name: `Disconnected input`,
+		type: 'button',
+		style: {
+			text: `NO INPUT`,
+			size: '18',
+			color: combineRgb(128, 128, 128),
+			bgcolor: combineRgb(0, 0, 0),
+		},
+		feedbacks: [
+			{
+				feedbackId: `selected_in`,
+				style: {
+					bgcolor: combineRgb(255, 255, 255),
+					color: combineRgb(0, 0, 0),
+				},
+				options: {
+					io_key: 'NILIO',
+				},
+			},
+			{
+				feedbackId: `take_tally_in`,
+				style: {
+					bgcolor: combineRgb(255, 0, 0),
+					color: combineRgb(255, 255, 255),
+				},
+				options: {
+					io_key: 'NILIO',
+				},
+			},
+		],
+		steps: [
+			{
+				down: [
+					{
+						actionId: `select_in`,
+						options: {
+							io_key: 'NILIO',
+						},
+					},
+				],
+				up: [],
+			},
+		],
+	}
+
 	for (const io of Object.values(self.ios)) {
 		const dir = io.direction()
 

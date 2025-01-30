@@ -67,13 +67,21 @@ export function UpdateActions(self: ModuleInstance): void {
 				return
 			}
 
-			const src_io = self.ios[key]
 			const dst_io = self.selectedDestinationIo()
-			if (!src_io || !dst_io) {
+			if (!dst_io) {
 				return
 			}
 
-			await self.queueRoute(src_io, dst_io)
+			if (key === 'NILIO') {
+				self.queueDisconnect(dst_io)
+			} else {
+				const src_io = self.ios[key]
+				if (!src_io) {
+					return
+				}
+
+				await self.queueRoute(src_io, dst_io)
+			}
 
 			// const values: CompanionVariableValues = {}
 			// updateSelectedDestinationVariables(state, values)
