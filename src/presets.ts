@@ -23,6 +23,15 @@ export function UpdatePresets(self: ModuleInstance): void {
 				},
 				options: {},
 			},
+			{
+				feedbackId: 'take_incompatible',
+				style: {
+					bgcolor: combineRgb(255, 200, 255),
+					color: combineRgb(255, 0, 0),
+					text: 'Take invalid',
+				},
+				options: {},
+			},
 		],
 		steps: [
 			{

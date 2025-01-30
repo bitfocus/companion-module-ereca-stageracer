@@ -26,8 +26,8 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 		name: 'Take pending incompatible',
 		description: 'Active if a route is queued for take and the ports are incompatible',
 		defaultStyle: {
-			color: combineRgb(255, 0, 0),
 			bgcolor: combineRgb(255, 200, 255),
+			color: combineRgb(255, 0, 0),
 			text: 'Take invalid',
 		},
 		options: [],

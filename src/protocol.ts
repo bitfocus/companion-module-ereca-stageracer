@@ -195,7 +195,7 @@ export class RacerProto {
 		}
 
 		// We only care about DANTE_CH protocols, not the DANTE dummy node
-		if (iod.protocol !== 'DANTE') {
+		if (iod.protocol !== 'DANTE' && iod.protocol !== 'GENLOCK') {
 			this.ios[iod.key] = iod
 			this.iokey_by_path[iod.path] = iod.key
 		}
