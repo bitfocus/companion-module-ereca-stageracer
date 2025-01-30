@@ -79,6 +79,20 @@ export function UpdatePresets(self: ModuleInstance): void {
 		],
 	}
 
+	presets['target_id'] = {
+		category: 'Miscellaneous',
+		name: 'Target identifier',
+		type: 'button',
+		style: {
+			text: '$(stageracer:target_id)',
+			size: '18',
+			color: combineRgb(255, 255, 128),
+			bgcolor: combineRgb(0, 50, 0),
+		},
+		feedbacks: [],
+		steps: [],
+	}
+
 	presets[`select_io_disconnected`] = {
 		category: `Pseudo-IOs`,
 		name: `Disconnected input`,

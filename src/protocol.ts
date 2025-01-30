@@ -6,14 +6,19 @@ export class RacerProto {
 	module: ModuleInstance
 	reconnect_tout: NodeJS.Timeout | undefined = undefined
 	poll_tout: NodeJS.Timeout | undefined = undefined
-	mode: string = 'standard'
 	ios: { [key: IoKey]: IoData } = {}
 	iokey_by_path: { [key: Path]: IoKey } = {}
+	meta: ApiMeta | undefined
+	local_node_id: NodeId | undefined
 
 	nodes: { [key: NodeId]: Node } = {}
 
 	constructor(module: ModuleInstance) {
 		this.module = module
+	}
+
+	public get mode(): string | undefined {
+		return this.meta?.mode
 	}
 
 	public destroy() {
@@ -47,18 +52,18 @@ export class RacerProto {
 			await self.setStatus(InstanceStatus.Connecting)
 			const req = await this.fetch('/api/meta')
 
-			let res = (await req.json()) as ApiMeta
+			let meta = (await req.json()) as ApiMeta
 
-			if (res.protocol !== 'SR2-API-1.0') {
-				throw new Error(`Invalid API version ${res.protocol}`)
+			if (meta.protocol !== 'SR2-API-1.0') {
+				throw new Error(`Invalid API version ${meta.protocol}`)
 			}
 
-			if (!['standard', 'simulator'].includes(res.mode)) {
-				throw new Error(`Unsupported API mode ${res.mode}`)
+			if (!['standard', 'simulator'].includes(meta.mode)) {
+				throw new Error(`Unsupported API mode ${meta.mode}`)
 			}
-			this.mode = res.mode
+			this.meta = meta
 
-			await self.setStatus(InstanceStatus.Ok, `${self.config.host}: ${res.version}`)
+			await self.setStatus(InstanceStatus.Ok, `${self.config.host}: ${meta.version}`)
 		} catch (e) {
 			await self.setStatus(InstanceStatus.Disconnected, `login failed: ${e}`)
 
@@ -102,6 +107,8 @@ export class RacerProto {
 		const req = await this.fetch('/srnet/transient')
 
 		const transient = (await req.json()) as Transient
+
+		this.local_node_id = transient.local_node_id
 
 		const node_tokens = transient.node_tokens
 
@@ -314,6 +321,14 @@ export class RacerProto {
 		// Schedule a poll in short notice to refresh our routes etc
 		this.scheduleTransient(200)
 	}
+
+	public localNode(): Node | undefined {
+		if (this.local_node_id) {
+			return this.nodes[this.local_node_id]
+		}
+
+		return undefined
+	}
 }
 
 export type NodeId = string
@@ -330,6 +345,7 @@ type ApiMeta = {
 	protocol: string
 	version: string
 	mode: string
+	identifier: string
 }
 
 type Transient = {
