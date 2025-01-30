@@ -86,10 +86,14 @@ export class RacerProto {
 		}
 
 		// Recursively call this method after the polling interval
+		this.scheduleTransient(self.config.pollInterval)
+	}
+
+	async scheduleTransient(delay_ms: number) {
 		if (this.poll_tout) {
 			clearTimeout(this.poll_tout)
 		}
-		this.poll_tout = setTimeout(() => this.pollTransient(), this.module.config.pollInterval)
+		this.poll_tout = setTimeout(() => this.pollTransient(), delay_ms)
 	}
 
 	async fetchTransient() {
@@ -207,20 +211,28 @@ export class RacerProto {
 
 	public async fetch(
 		endpoint: string,
-		method: string = 'GET',
-		content_type: string = 'application/json',
+		opts: {
+			method?: 'GET' | 'POST'
+			body?: any
+		} = {},
 	): Promise<Response> {
 		const self = this.module
 		const prefix = self.config.useHttps ? 'https://' : 'http://'
 		const host = self.config.host
 		const url = `${prefix}${host}${endpoint}`
 
+		const headers = new Headers({
+			Authorization: `Bearer ${self.config.apiToken.trim()}`,
+		})
+
 		const fetchopts: RequestInit = {
-			method: method,
-			headers: {
-				'Content-Type': content_type,
-				Authorization: `Bearer ${self.config.apiToken.trim()}`,
-			},
+			method: opts.method ?? 'GET',
+			headers: headers,
+		}
+
+		if (opts.body) {
+			headers.set('Content-Type', 'application/json')
+			fetchopts.body = JSON.stringify(opts.body)
 		}
 
 		// We accept self-signed certificates, unless we're connecting to
@@ -254,7 +266,23 @@ export class RacerProto {
 	}
 
 	public async route(src: IoData, dst: IoData) {
-		console.log('todo route', src.path, dst.path)
+		const xpoint = {
+			input: src.path,
+			output: dst.path,
+		}
+
+		const xpoint_action = {
+			action: 'create',
+			points: [xpoint],
+		}
+
+		await this.fetch('/srnet/grid/crosspoints', {
+			method: 'POST',
+			body: xpoint_action,
+		})
+
+		// Schedule a poll in short notice to refresh our routes etc
+		this.scheduleTransient(200)
 	}
 }
 

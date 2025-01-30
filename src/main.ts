@@ -163,7 +163,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			}
 		} else {
 			this.pendingRoute = undefined
-			return this.protocol.route(src, dst)
+			await this.protocol.route(src, dst)
 		}
 
 		this.checkFeedbacks('take', 'selected_in', 'selected_out', 'take_tally_in', 'take_tally_out')
