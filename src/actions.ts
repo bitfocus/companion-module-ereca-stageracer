@@ -1,5 +1,6 @@
 import type { CompanionActionDefinitions } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
+import { UpdateSelectionVariables } from './variables.js'
 
 export function UpdateActions(self: ModuleInstance): void {
 	const actions: CompanionActionDefinitions = {}
@@ -48,9 +49,7 @@ export function UpdateActions(self: ModuleInstance): void {
 
 			self.setSelectedDestination(key)
 
-			// const values: CompanionVariableValues = {}
-			// updateSelectedDestinationVariables(state, values)
-			// self.setVariableValues(values)
+			UpdateSelectionVariables(self)
 		},
 	}
 
@@ -88,9 +87,7 @@ export function UpdateActions(self: ModuleInstance): void {
 				await self.queueRoute(src_io, dst_io)
 			}
 
-			// const values: CompanionVariableValues = {}
-			// updateSelectedDestinationVariables(state, values)
-			// self.setVariableValues(values)
+			UpdateSelectionVariables(self)
 		},
 	}
 
