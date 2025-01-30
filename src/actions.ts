@@ -7,6 +7,11 @@ export function UpdateActions(self: ModuleInstance): void {
 	const choices_out = self.outputChoices()
 	const choices_in = self.inputChoices()
 
+	choices_in.push({
+		id: 'NILIO',
+		label: '[NO INPUT]',
+	})
+
 	actions['take'] = {
 		name: 'Take',
 		options: [],
@@ -54,7 +59,7 @@ export function UpdateActions(self: ModuleInstance): void {
 		options: [
 			{
 				type: 'dropdown',
-				label: 'Destination',
+				label: 'Source',
 				id: 'io_key',
 				choices: choices_in,
 				default: 'NILIO',
