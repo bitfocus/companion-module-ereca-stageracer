@@ -9,8 +9,8 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 
 	feedbacks['take'] = {
 		type: 'boolean',
-		name: 'Change background color if take has a route queued',
-		description: 'If a route is queued for take, change background color of the bank',
+		name: 'Take pending',
+		description: 'Active if take has a route queued',
 		defaultStyle: {
 			color: combineRgb(255, 255, 255),
 			bgcolor: combineRgb(255, 0, 0),
@@ -21,10 +21,28 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 		},
 	}
 
+	feedbacks['take_incompatible'] = {
+		type: 'boolean',
+		name: 'Take pending incompatible',
+		description: 'Active if a route is queued for take and the ports are incompatible',
+		defaultStyle: {
+			color: combineRgb(255, 0, 0),
+			bgcolor: combineRgb(255, 200, 255),
+			text: 'Take invalid',
+		},
+		options: [],
+		callback: () => {
+			if (!self.pendingRoute) {
+				return false
+			}
+			return !self.pendingRoute.compatible
+		},
+	}
+
 	feedbacks['selected_in'] = {
 		type: 'boolean',
-		name: 'Change background color by route to selected destination',
-		description: 'If the input specified is in use by the selected output, change background color of the bank',
+		name: 'Selected output source',
+		description: 'Active if the input specified is routed to the selected output',
 		defaultStyle: {
 			color: combineRgb(0, 0, 0),
 			bgcolor: combineRgb(255, 255, 255),
@@ -51,8 +69,8 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 
 	feedbacks['selected_out'] = {
 		type: 'boolean',
-		name: 'Change background color by selected destination',
-		description: 'If the output specified is selected, change background color of the bank',
+		name: 'Selected output',
+		description: 'Active if the output specified is selected',
 		defaultStyle: {
 			color: combineRgb(0, 0, 0),
 			bgcolor: combineRgb(255, 255, 0),
@@ -73,8 +91,8 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 
 	feedbacks['take_tally_in'] = {
 		type: 'boolean',
-		name: 'Change background color if the selected source is queued in take',
-		description: 'If the selected source is queued for take, change background color of the bank',
+		name: 'Take source',
+		description: 'Active if the selected source is queued for take',
 		defaultStyle: {
 			color: combineRgb(255, 255, 255),
 			bgcolor: combineRgb(255, 0, 0),
@@ -103,8 +121,8 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 
 	feedbacks['take_tally_out'] = {
 		type: 'boolean',
-		name: 'Change background color if the selected destination is queued in take',
-		description: 'If the selected destination is queued for take, change background color of the bank',
+		name: 'Take destination',
+		description: 'Active If the selected destination is queued for take',
 		defaultStyle: {
 			color: combineRgb(255, 255, 255),
 			bgcolor: combineRgb(255, 0, 0),

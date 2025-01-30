@@ -266,6 +266,7 @@ export class RacerProto {
 	}
 
 	public async route(src: IoData, dst: IoData) {
+		const self = this.module
 		const xpoint = {
 			input: src.path,
 			output: dst.path,
@@ -276,10 +277,14 @@ export class RacerProto {
 			points: [xpoint],
 		}
 
-		await this.fetch('/srnet/grid/crosspoints', {
-			method: 'POST',
-			body: xpoint_action,
-		})
+		try {
+			await this.fetch('/srnet/grid/crosspoints', {
+				method: 'POST',
+				body: xpoint_action,
+			})
+		} catch (e) {
+			self.log('error', `Failed to create crosspoint ${xpoint.input} -> ${xpoint.output}: ${e}`)
+		}
 
 		// Schedule a poll in short notice to refresh our routes etc
 		this.scheduleTransient(200)
@@ -291,6 +296,8 @@ export type SyncToken = number
 export type Protocol = string
 export type Path = string
 export type Priority = string
+export type TicoMode = string
+export type Standard = { name: string; bw: number }
 export type OutputSource = 'none' | { locked?: Path; unlocked?: Path }
 export type IoDirection = string | { OUT?: [OutputSource, Priority]; BIDIR?: [OutputSource, Priority] }
 
@@ -321,6 +328,9 @@ export type Io = {
 	proto: Protocol
 	dir: IoDirection
 	children: Io[]
+	attrs: Object | any
+	stds: Standard[]
+	stdi: number
 }
 
 export type IoKey = string
@@ -333,6 +343,7 @@ export class IoData {
 	name: string
 	path: Path
 	src_key: IoKey | undefined
+	active_standard: Standard | undefined
 
 	public get enabled(): boolean {
 		return this.io.en
@@ -352,6 +363,10 @@ export class IoData {
 
 		if (!this.name) {
 			this.name = `${this.displayProto()} ${indices.join('/')}`
+		}
+
+		if (io.stds) {
+			this.active_standard = io.stds[io.stdi]
 		}
 	}
 
@@ -411,5 +426,126 @@ export class IoData {
 		}
 
 		return proto_map[this.protocol] || this.protocol
+	}
+
+	public getAttr(attr: string): any | undefined {
+		if (this.io.attrs) {
+			return this.io.attrs[attr]
+		}
+	}
+
+	public ticoMode(): TicoMode {
+		let attr = this.getAttr('sdi_input')
+
+		if (attr) {
+			return attr.tico_compression_mode
+		}
+
+		return 'DISABLED'
+	}
+
+	public activeStandardBw(): number | undefined {
+		if (!this.active_standard) {
+			return undefined
+		}
+
+		const bw = this.active_standard.bw
+
+		switch (this.ticoMode()) {
+			case 'TICO3G':
+				switch (this.active_standard.name) {
+					case 'HD':
+					case '3G':
+					case '6G':
+					case '12G':
+						return bw / 4
+					default:
+						return bw
+				}
+
+			case 'TICOHD':
+				switch (this.active_standard.name) {
+					case 'HD':
+					case '3G':
+					case '6G':
+						return bw / 4
+					case '12G':
+						return bw / 8
+					default:
+						return bw
+				}
+
+			case null:
+			case 'DISABLED':
+			default:
+				return bw
+		}
+	}
+
+	public maxBwStandard(): Standard | undefined {
+		return this.io.stds.reduce((max, current) => (current.bw > max.bw ? current : max))
+	}
+
+	public canStreamTo(dst: IoData): boolean {
+		if (this.key == dst.key) {
+			// Can't stream to ourselves
+			return false
+		}
+
+		if (!this.isInput() || !dst.isOutput()) {
+			return false
+		}
+
+		if (!this.enabled || !dst.enabled) {
+			return false
+		}
+
+		const src_proto = this.protocol
+		const dst_proto = dst.protocol
+
+		if (dst_proto == 'SDI_PV' && src_proto == 'SDI') {
+			return true
+		}
+
+		function areProtosCompatible(src: Protocol, dst: Protocol): boolean {
+			const audio_out_protos = ['ANALO_OUT', 'SDI_ACH', 'MADI_CH', 'DANTE_CH', 'AES_CH']
+
+			switch (src) {
+				case 'GPI':
+					return dst === 'GPO'
+				case 'ANALO_IN':
+				case 'SDI_ACH':
+				case 'AES_CH':
+				case 'MADI_CH':
+				case 'DANTE_CH':
+					return audio_out_protos.includes(dst)
+				case 'AES':
+				case 'MADI_AES_CH':
+					return ['AES', 'MADI_AES_CH'].includes(dst)
+				case 'SDI':
+					return ['SDI', 'SDI_PV'].includes(dst)
+				default:
+					return src == dst
+			}
+		}
+
+		if (!areProtosCompatible(src_proto, dst_proto)) {
+			return false
+		}
+
+		// TODO: check TICO compat
+
+		const in_bw = this.activeStandardBw()
+		if (in_bw) {
+			let out_max = dst.maxBwStandard()?.bw || 0
+
+			// We can stream if our input bandwidth is less than our output
+			// bandwidth
+			if (in_bw > out_max) {
+				return false
+			}
+		}
+
+		return true
 	}
 }

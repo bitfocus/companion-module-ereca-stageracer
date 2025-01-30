@@ -14,7 +14,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	curStatus: [InstanceStatus, string | undefined] | undefined = undefined
 	selectedDestination: IoKey | undefined = undefined
 	// When using "take", this contains the pending routing instructions
-	pendingRoute: { src: IoKey; dst: IoKey } | undefined = undefined
+	pendingRoute: { src: IoKey; dst: IoKey; compatible: boolean } | undefined = undefined
 
 	constructor(internal: unknown) {
 		super(internal)
@@ -156,26 +156,28 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	async queueRoute(src: IoData, dst: IoData) {
+		const compatible = src.canStreamTo(dst)
+
 		if (this.config.take) {
 			this.pendingRoute = {
 				src: src.key,
 				dst: dst.key,
+				compatible: compatible,
 			}
-		} else {
+		} else if (compatible) {
 			this.pendingRoute = undefined
 			await this.protocol.route(src, dst)
 		}
 
-		this.checkFeedbacks('take', 'selected_in', 'selected_out', 'take_tally_in', 'take_tally_out')
+		this.checkFeedbacks('take', 'take_incompatible', 'selected_in', 'selected_out', 'take_tally_in', 'take_tally_out')
 	}
 
 	async applyPendingRoute() {
-		if (!this.pendingRoute) {
+		if (!this.pendingRoute || !this.pendingRoute.compatible) {
 			return
 		}
 
 		const route = this.pendingRoute
-		this.checkFeedbacks('take', 'selected_in', 'selected_out', 'take_tally_in', 'take_tally_out')
 		await this.clearPendingRoute()
 
 		const src = this.ios[route.src]
@@ -199,7 +201,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		}
 
 		this.pendingRoute = undefined
-		this.checkFeedbacks('take', 'selected_in', 'selected_out', 'take_tally_in', 'take_tally_out')
+		this.checkFeedbacks('take', 'take_incompatible', 'selected_in', 'selected_out', 'take_tally_in', 'take_tally_out')
 	}
 }
 
