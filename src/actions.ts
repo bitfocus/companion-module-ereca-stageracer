@@ -16,8 +16,8 @@ export function UpdateActions(self: ModuleInstance): void {
 	actions['take'] = {
 		name: 'Take',
 		options: [],
-		callback: () => {
-			self.applyPendingRoute()
+		callback: async () => {
+			await self.applyPendingRoute()
 		},
 	}
 
@@ -77,7 +77,7 @@ export function UpdateActions(self: ModuleInstance): void {
 			}
 
 			if (key === 'NILIO') {
-				self.queueDisconnect(dst_io)
+				await self.queueDisconnect(dst_io)
 			} else {
 				const src_io = self.ios[key]
 				if (!src_io) {
