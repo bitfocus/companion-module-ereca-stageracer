@@ -1,6 +1,6 @@
 import { InstanceStatus } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
-import { Agent, fetch, RequestInit, Response } from 'undici'
+import { Agent, fetch, RequestInit, Response, Headers } from 'undici'
 
 export class RacerProto {
 	module: ModuleInstance
@@ -21,7 +21,7 @@ export class RacerProto {
 		return this.meta?.mode
 	}
 
-	public destroy() {
+	public destroy(): void {
 		if (this.reconnect_tout) {
 			clearTimeout(this.reconnect_tout)
 			this.reconnect_tout = undefined
@@ -52,7 +52,7 @@ export class RacerProto {
 			await self.setStatus(InstanceStatus.Connecting)
 			const req = await this.fetch('/api/meta')
 
-			let meta = (await req.json()) as ApiMeta
+			const meta = (await req.json()) as ApiMeta
 
 			if (meta.protocol !== 'SR2-API-1.0') {
 				throw new Error(`Invalid API version ${meta.protocol}`)
@@ -67,14 +67,16 @@ export class RacerProto {
 		} catch (e) {
 			await self.setStatus(InstanceStatus.Disconnected, `login failed: ${e}`)
 
-			this.reconnect_tout = setTimeout(() => this.init(), 3000)
+			this.reconnect_tout = setTimeout(() => {
+				this.init().catch(console.error)
+			}, 3000)
 			return
 		}
 
-		this.pollTransient()
+		return this.pollTransient()
 	}
 
-	async pollTransient() {
+	async pollTransient(): Promise<void> {
 		const self = this.module
 
 		if (this.poll_tout) {
@@ -91,17 +93,19 @@ export class RacerProto {
 		}
 
 		// Recursively call this method after the polling interval
-		this.scheduleTransient(self.config.pollInterval)
+		return this.scheduleTransient(self.config.pollInterval)
 	}
 
-	async scheduleTransient(delay_ms: number) {
+	async scheduleTransient(delay_ms: number): Promise<void> {
 		if (this.poll_tout) {
 			clearTimeout(this.poll_tout)
 		}
-		this.poll_tout = setTimeout(() => this.pollTransient(), delay_ms)
+		this.poll_tout = setTimeout(() => {
+			this.pollTransient().catch(console.error)
+		}, delay_ms)
 	}
 
-	async fetchTransient() {
+	async fetchTransient(): Promise<void> {
 		const self = this.module
 
 		const req = await this.fetch('/srnet/transient')
@@ -114,7 +118,7 @@ export class RacerProto {
 
 		let needs_port_refresh = false
 
-		let nodes_to_fetch = []
+		const nodes_to_fetch = []
 
 		// Look for dropped nodes
 		for (const nid of Object.keys(this.nodes)) {
@@ -192,7 +196,7 @@ export class RacerProto {
 		}
 	}
 
-	addIo(node: Node, parent_proto: Protocol, parent_io: IoData | undefined, io: Io, indices: number[]) {
+	addIo(node: Node, parent_proto: Protocol, parent_io: IoData | undefined, io: Io, indices: number[]): void {
 		const iod = new IoData(node, io, parent_proto, indices)
 
 		const dir = iod.direction()
@@ -259,7 +263,7 @@ export class RacerProto {
 
 		// self.log('debug', `${fetchopts.method} ${url}`)
 
-		let res = await fetch(url, fetchopts)
+		const res = await fetch(url, fetchopts)
 
 		if (!res.ok) {
 			throw new Error(`${fetchopts.method} ${url} failed: ${res.status} ${res.statusText}`)
@@ -277,7 +281,7 @@ export class RacerProto {
 		this.module.log('debug', `Fetched ${nid} '${node.name}'`)
 	}
 
-	public async route(src: IoData, dst: IoData) {
+	public async route(src: IoData, dst: IoData): Promise<void> {
 		const self = this.module
 		const xpoint = {
 			input: src.path,
@@ -295,13 +299,13 @@ export class RacerProto {
 				body: xpoint_action,
 			})
 
-			this.scheduleTransient(200)
+			await this.scheduleTransient(200)
 		} catch (e) {
 			self.log('error', `Failed to create crosspoint ${xpoint.input} -> ${xpoint.output}: ${e}`)
 		}
 	}
 
-	public async disconnect(dst: IoData) {
+	public async disconnect(dst: IoData): Promise<void> {
 		const self = this.module
 		const xpoint = {
 			input: dst.sourcePath(),
@@ -319,13 +323,13 @@ export class RacerProto {
 				body: xpoint_action,
 			})
 
-			this.scheduleTransient(200)
+			await this.scheduleTransient(200)
 		} catch (e) {
 			self.log('error', `Failed to create crosspoint ${xpoint.input} -> ${xpoint.output}: ${e}`)
 		}
 	}
 
-	public async renameIo(io: IoData, new_name: string) {
+	public async renameIo(io: IoData, new_name: string): Promise<void> {
 		const self = this.module
 
 		const rename_list = [
@@ -341,7 +345,7 @@ export class RacerProto {
 				body: rename_list,
 			})
 
-			this.scheduleTransient(200)
+			await this.scheduleTransient(200)
 		} catch (e) {
 			self.log('error', `Failed to rename io ${io.path}: ${e}`)
 		}
@@ -394,7 +398,7 @@ export type Io = {
 	proto: Protocol
 	dir: IoDirection
 	children: Io[]
-	attrs: Object | any
+	attrs: object | any
 	stds: Standard[]
 	stdi: number
 }
@@ -505,7 +509,7 @@ export class IoData {
 	}
 
 	public ticoMode(): TicoMode {
-		let attr = this.getAttr('sdi_input')
+		const attr = this.getAttr('sdi_input')
 
 		if (attr) {
 			return attr.tico_compression_mode
@@ -611,7 +615,7 @@ export class IoData {
 
 		const in_bw = this.activeStandardBw()
 		if (in_bw) {
-			let out_max = dst.maxBwStandard()?.bw || 0
+			const out_max = dst.maxBwStandard()?.bw || 0
 
 			// We can stream if our input bandwidth is less than our output
 			// bandwidth

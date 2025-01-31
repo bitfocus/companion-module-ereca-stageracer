@@ -148,7 +148,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 			bg_select_col = combineRgb(255, 255, 255)
 		}
 
-		let options = {
+		const options = {
 			io_key: io.key,
 		}
 

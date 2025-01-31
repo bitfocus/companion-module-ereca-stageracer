@@ -21,7 +21,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	async init(config: ModuleConfig): Promise<void> {
-		this.configUpdated(config)
+		await this.configUpdated(config)
 	}
 
 	// When module gets deleted
@@ -51,21 +51,21 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		}
 
 		this.proto = new RacerProto(this)
-		this.proto.init()
+		await this.proto.init()
 
 		if (!this.config.take) {
 			this.pendingRoute = undefined
 		}
 	}
 
-	async setStatus(status: InstanceStatus, desc: string | undefined = undefined) {
+	async setStatus(status: InstanceStatus, desc: string | undefined = undefined): Promise<void> {
 		if (this.curStatus && this.curStatus[0] == status && this.curStatus[1] == desc) {
 			return
 		}
 
 		this.curStatus = [status, desc]
 
-		await this.updateStatus(status, desc)
+		this.updateStatus(status, desc)
 	}
 
 	// Return config fields for web config
@@ -106,7 +106,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	get nodes(): Node[] {
-		let nodes = Object.values(this.protocol.nodes)
+		const nodes = Object.values(this.protocol.nodes)
 
 		// Make sure the nodes are always in the same order for consistency
 		nodes.sort((a, b) => a.name.localeCompare(b.name))
@@ -147,7 +147,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		}))
 	}
 
-	setSelectedDestination(key: IoKey) {
+	setSelectedDestination(key: IoKey): void {
 		this.selectedDestination = key
 
 		this.checkFeedbacks('selected_in', 'selected_out', 'take_tally_in')
@@ -161,7 +161,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		return this.ios[this.selectedDestination]
 	}
 
-	async queueRoute(src: IoData, dst: IoData) {
+	async queueRoute(src: IoData, dst: IoData): Promise<void> {
 		const compatible = src.canStreamTo(dst)
 
 		if (this.config.take) {
@@ -178,7 +178,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.checkFeedbacks('take', 'take_incompatible', 'selected_in', 'selected_out', 'take_tally_in', 'take_tally_out')
 	}
 
-	async queueDisconnect(dst: IoData) {
+	async queueDisconnect(dst: IoData): Promise<void> {
 		if (this.config.take) {
 			this.pendingRoute = {
 				src: null,
@@ -193,7 +193,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.checkFeedbacks('take', 'take_incompatible', 'selected_in', 'selected_out', 'take_tally_in', 'take_tally_out')
 	}
 
-	async applyPendingRoute() {
+	async applyPendingRoute(): Promise<void> {
 		if (!this.pendingRoute || !this.pendingRoute.compatible) {
 			return
 		}
@@ -221,7 +221,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		}
 	}
 
-	async clearPendingRoute() {
+	async clearPendingRoute(): Promise<void> {
 		if (!this.pendingRoute) {
 			return
 		}

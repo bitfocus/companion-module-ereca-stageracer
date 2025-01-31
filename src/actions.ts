@@ -24,8 +24,8 @@ export function UpdateActions(self: ModuleInstance): void {
 	actions['clear'] = {
 		name: 'Clear',
 		options: [],
-		callback: () => {
-			self.clearPendingRoute()
+		callback: async () => {
+			await self.clearPendingRoute()
 		},
 	}
 
@@ -89,7 +89,7 @@ export function UpdateActions(self: ModuleInstance): void {
 		},
 	}
 
-	const action_route = (action: CompanionActionInfo) => {
+	const action_route = async (action: CompanionActionInfo) => {
 		const src_key = action.options.src_key
 		const dst_key = action.options.dst_key
 
@@ -111,9 +111,9 @@ export function UpdateActions(self: ModuleInstance): void {
 		}
 
 		if (src_key == 'NILIO' || !src_io) {
-			self.queueDisconnect(dst_io)
+			await self.queueDisconnect(dst_io)
 		} else {
-			self.queueRoute(src_io, dst_io)
+			await self.queueRoute(src_io, dst_io)
 		}
 	}
 
@@ -156,9 +156,9 @@ export function UpdateActions(self: ModuleInstance): void {
 				choices: choices_out,
 			},
 		],
-		callback: (action) => {
-			action_route(action)
-			self.applyPendingRoute()
+		callback: async (action) => {
+			await action_route(action)
+			await self.applyPendingRoute()
 		},
 	}
 
