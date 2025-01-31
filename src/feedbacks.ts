@@ -7,6 +7,11 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 	const choices_out = self.outputChoices()
 	const choices_in = self.inputChoices()
 
+	choices_in.push({
+		id: 'NILIO',
+		label: '[NO INPUT]',
+	})
+
 	feedbacks['take'] = {
 		type: 'boolean',
 		name: 'Take pending',
