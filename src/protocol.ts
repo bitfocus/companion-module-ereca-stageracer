@@ -294,12 +294,11 @@ export class RacerProto {
 				method: 'POST',
 				body: xpoint_action,
 			})
+
+			this.scheduleTransient(200)
 		} catch (e) {
 			self.log('error', `Failed to create crosspoint ${xpoint.input} -> ${xpoint.output}: ${e}`)
 		}
-
-		// Schedule a poll in short notice to refresh our routes etc
-		this.scheduleTransient(200)
 	}
 
 	public async disconnect(dst: IoData) {
@@ -319,12 +318,33 @@ export class RacerProto {
 				method: 'POST',
 				body: xpoint_action,
 			})
+
+			this.scheduleTransient(200)
 		} catch (e) {
 			self.log('error', `Failed to create crosspoint ${xpoint.input} -> ${xpoint.output}: ${e}`)
 		}
+	}
 
-		// Schedule a poll in short notice to refresh our routes etc
-		this.scheduleTransient(200)
+	public async renameIo(io: IoData, new_name: string) {
+		const self = this.module
+
+		const rename_list = [
+			{
+				path: io.path,
+				name: new_name,
+			},
+		]
+
+		try {
+			await this.fetch('/srnet/io/rename', {
+				method: 'POST',
+				body: rename_list,
+			})
+
+			this.scheduleTransient(200)
+		} catch (e) {
+			self.log('error', `Failed to rename io ${io.path}: ${e}`)
+		}
 	}
 
 	public localNode(): Node | undefined {
@@ -350,7 +370,7 @@ type ApiMeta = {
 	protocol: string
 	version: string
 	mode: string
-	identifier: string
+	identifier?: string
 }
 
 type Transient = {

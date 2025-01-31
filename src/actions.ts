@@ -161,5 +161,42 @@ export function UpdateActions(self: ModuleInstance): void {
 			self.applyPendingRoute()
 		},
 	}
+
+	actions['rename'] = {
+		name: 'Rename port',
+		options: [
+			{
+				type: 'dropdown',
+				label: 'Source',
+				id: 'io_key',
+				default: 'NILIO',
+				choices: [...choices_in, ...choices_out],
+			},
+			{
+				type: 'textinput',
+				label: 'New label',
+				id: 'label',
+				default: '',
+			},
+		],
+		callback: async (action) => {
+			const key = action.options.io_key
+			if (!key || typeof key !== 'string' || key == 'NILIO') {
+				console.error(action)
+				return
+			}
+
+			const label = `${action.options.label}`
+
+			const io = self.ios[key]
+
+			if (!io) {
+				return
+			}
+
+			await self.protocol.renameIo(io, label)
+		},
+	}
+
 	self.setActionDefinitions(actions)
 }

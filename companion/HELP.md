@@ -11,3 +11,4 @@ setting the host to sim.ereca.fr et using the API token from the website.
 
 - Routing of all protocols (SDI, audio, GPIO, multiviewer etc...)
 - Optional Take/Clear
+- Port renaming
