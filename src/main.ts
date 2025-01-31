@@ -45,6 +45,10 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			this.config.apiToken = 'SRK_ERECA'
 		}
 
+		if (this.config.host.trim() === 'sim.ereca.fr') {
+			this.config.useHttps = true
+		}
+
 		if (this.proto) {
 			this.proto.destroy()
 			this.proto = undefined

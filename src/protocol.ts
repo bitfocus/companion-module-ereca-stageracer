@@ -234,7 +234,7 @@ export class RacerProto {
 	): Promise<Response> {
 		const self = this.module
 		const prefix = self.config.useHttps ? 'https://' : 'http://'
-		const host = self.config.host
+		const host = self.config.host.trim()
 		const url = `${prefix}${host}${endpoint}`
 
 		const headers = new Headers({
