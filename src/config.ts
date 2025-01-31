@@ -31,10 +31,8 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			id: 'apiToken',
 			label: 'API token',
 			width: 6,
-			tooltip: 'Defaults to SRK_ERECA on real hardware.',
-			required: true,
-			regex: '^SRK_[a-zA-Z0-9]+$',
-			default: 'SRK_ERECA',
+			tooltip: 'Leave empty for default SRK_ERECA',
+			default: '',
 		},
 		{
 			type: 'number',

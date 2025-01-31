@@ -229,7 +229,7 @@ export class RacerProto {
 		const url = `${prefix}${host}${endpoint}`
 
 		const headers = new Headers({
-			Authorization: `Bearer ${self.config.apiToken.trim()}`,
+			Authorization: `Bearer ${self.config.apiToken}`,
 		})
 
 		const fetchopts: RequestInit = {

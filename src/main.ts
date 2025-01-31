@@ -39,6 +39,12 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			this.config.pollInterval = 250
 		}
 
+		this.config.apiToken = this.config.apiToken.trim()
+
+		if (!this.config.apiToken) {
+			this.config.apiToken = 'SRK_ERECA'
+		}
+
 		if (this.proto) {
 			this.proto.destroy()
 			this.proto = undefined

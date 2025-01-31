@@ -1,4 +1,4 @@
-import type { CompanionActionDefinitions } from '@companion-module/base'
+import type { CompanionActionDefinitions, CompanionActionInfo } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
 import { UpdateSelectionVariables } from './variables.js'
 
@@ -86,10 +86,80 @@ export function UpdateActions(self: ModuleInstance): void {
 
 				await self.queueRoute(src_io, dst_io)
 			}
-
-			UpdateSelectionVariables(self)
 		},
 	}
 
+	const action_route = (action: CompanionActionInfo) => {
+		const src_key = action.options.src_key
+		const dst_key = action.options.dst_key
+
+		if (!src_key || typeof src_key !== 'string') {
+			console.error(action)
+			return
+		}
+
+		if (!dst_key || typeof dst_key !== 'string') {
+			console.error(action)
+			return
+		}
+
+		const src_io = self.ios[src_key]
+		const dst_io = self.ios[dst_key]
+
+		if (!dst_io) {
+			return
+		}
+
+		if (src_key == 'NILIO' || !src_io) {
+			self.queueDisconnect(dst_io)
+		} else {
+			self.queueRoute(src_io, dst_io)
+		}
+	}
+
+	actions['route'] = {
+		name: 'Route source to destination. If take is enabled, set route pending.',
+		options: [
+			{
+				type: 'dropdown',
+				label: 'Source',
+				id: 'src_key',
+				default: 'NILIO',
+				choices: choices_in,
+			},
+			{
+				type: 'dropdown',
+				label: 'Destination',
+				id: 'dst_key',
+				default: choices_out[0]?.id,
+				choices: choices_out,
+			},
+		],
+		callback: action_route,
+	}
+
+	actions['route_forced'] = {
+		name: 'Route source to destination. Bypasses take.',
+		options: [
+			{
+				type: 'dropdown',
+				label: 'Source',
+				id: 'src_key',
+				default: 'NILIO',
+				choices: choices_in,
+			},
+			{
+				type: 'dropdown',
+				label: 'Destination',
+				id: 'dst_key',
+				default: choices_out[0]?.id,
+				choices: choices_out,
+			},
+		],
+		callback: (action) => {
+			action_route(action)
+			self.applyPendingRoute()
+		},
+	}
 	self.setActionDefinitions(actions)
 }
