@@ -2,8 +2,8 @@
 	"id": "ereca-stageracer",
 	"name": "ereca-stageracer",
 	"shortname": "stageracer",
-	"description": "Ereca StageRacer module for companion using Ember+",
-	"version": "0.0.0",
+	"description": "Ereca StageRacer module for Companion",
+	"version": "1.0.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/erecasa/companion-module-ereca-stageracer.git",
 	"bugs": "https://github.com/bitfocus/companion-module-ereca-stageracer/issues",
@@ -22,5 +22,5 @@
 	"legacyIds": [],
 	"manufacturer": "Ereca",
 	"products": ["Stage Racer II"],
-	"keywords": ["ereca", "stageracer", "ember", "emberplus"]
+	"keywords": ["ereca", "stageracer"]
 }
