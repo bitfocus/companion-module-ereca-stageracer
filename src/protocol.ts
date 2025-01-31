@@ -167,7 +167,7 @@ export class RacerProto {
 					const ios = node.ios_by_proto[proto]
 
 					for (const [idx, io] of ios.entries()) {
-						this.addIo(node, proto, io, [idx + 1])
+						this.addIo(node, proto, undefined, io, [idx + 1])
 					}
 				}
 			}
@@ -192,13 +192,18 @@ export class RacerProto {
 		}
 	}
 
-	addIo(node: Node, parent_proto: Protocol, io: Io, indices: number[]) {
+	addIo(node: Node, parent_proto: Protocol, parent_io: IoData | undefined, io: Io, indices: number[]) {
 		const iod = new IoData(node, io, parent_proto, indices)
 
 		const dir = iod.direction()
 
 		if (!iod.enabled || (dir !== 'IN' && dir !== 'OUT')) {
 			return
+		}
+
+		if (iod.protocol == 'SDI_PV' && parent_io) {
+			// For previews we use the multiviewer name
+			iod.name = `F${indices[indices.length - 1]} ${parent_io.name}`
 		}
 
 		// We only care about DANTE_CH protocols, not the DANTE dummy node
@@ -212,7 +217,7 @@ export class RacerProto {
 			const cidx = indices.slice()
 			cidx.push(idx + 1)
 
-			this.addIo(node, parent_proto, cio, cidx)
+			this.addIo(node, parent_proto, iod, cio, cidx)
 		}
 	}
 
@@ -403,7 +408,11 @@ export class IoData {
 		this.name = io.name
 
 		if (!this.name) {
-			this.name = `${this.displayProto()} ${indices.join('/')}`
+			if (this.isMultiview()) {
+				this.name = `${node.name} MVIEW`
+			} else {
+				this.name = `${this.displayProto()} ${indices.join('/')}`
+			}
 		}
 
 		if (io.stds) {
@@ -483,6 +492,10 @@ export class IoData {
 		}
 
 		return 'DISABLED'
+	}
+
+	public isMultiview(): boolean {
+		return !!this.getAttr('multi_view')
 	}
 
 	public activeStandardBw(): number | undefined {
