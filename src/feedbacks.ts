@@ -7,6 +7,7 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 
 	const choices_out = self.outputChoices()
 	const choices_in = self.inputChoices()
+	const choices_nodes = self.nodeChoices()
 
 	choices_in.push({
 		id: 'NILIO',
@@ -215,6 +216,73 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 
 			return {
 				imageBuffer: circleIcon,
+			}
+		},
+	}
+
+	feedbacks['trunk_rx_popt'] = {
+		type: 'advanced',
+		name: 'Trunk RX optical power',
+		description: 'Draws meters representing the current trunk RX popt',
+		options: [
+			{
+				type: 'dropdown',
+				label: 'Node',
+				id: 'ember_id',
+				default: 0,
+				choices: choices_nodes,
+			},
+		],
+		callback: (feedback) => {
+			const iw = feedback.image?.width || 10
+			const ih = feedback.image?.height || 10
+
+			const ember_id = feedback.options.ember_id
+			if (!ember_id || typeof ember_id !== 'number') {
+				return {}
+			}
+
+			const n = self.nodeByEmberId(ember_id)
+			if (!n?.status) {
+				return {}
+			}
+
+			const popt = n?.status.controller_status.trunk_popt
+
+			const bars = ['A', 'B', 'C', 'D'].map((_t, i) => {
+				let tpopt = Math.min(...popt[i]) || -40
+
+				if (tpopt < -40) {
+					tpopt = -40
+				}
+
+				if (tpopt > 0) {
+					tpopt = 0
+				}
+
+				const v = Math.pow((40 + tpopt) / 40, 2)
+
+				return graphics.bar({
+					width: iw,
+					height: ih,
+					colors: [
+						{ size: 40, color: combineRgb(255, 0, 0), background: combineRgb(255, 0, 0), backgroundOpacity: 64 },
+						{ size: 20, color: combineRgb(255, 255, 0), background: combineRgb(255, 255, 0), backgroundOpacity: 64 },
+						{ size: 40, color: combineRgb(0, 255, 0), background: combineRgb(0, 255, 0), backgroundOpacity: 64 },
+					],
+					barLength: Math.trunc(ih / 2.1),
+					barWidth: Math.trunc(iw / 8),
+					value: Math.round(v * 100),
+					type: 'vertical',
+					reverse: false,
+					offsetX: Math.trunc(iw / 16 + (iw / 4) * i),
+					offsetY: Math.trunc(ih / 2),
+					opacity: 255,
+				})
+			})
+
+			return {
+				imageBuffer: graphics.stackImage(bars),
 			}
 		},
 	}

@@ -205,7 +205,7 @@ export class RacerProto {
 			this.module.updatePorts()
 		}
 
-		self.checkFeedbacks('signal_active')
+		self.checkFeedbacks('signal_active', 'trunk_rx_popt')
 	}
 
 	addIo(node: Node, parent_proto: Protocol, parent_io: IoData | undefined, io: Io, indices: number[]): void {
@@ -449,6 +449,7 @@ type ApiMeta = {
 type ControllerStatus = {
 	temp_fpga: number
 	temp_mb: number
+	trunk_popt: [number, number, number, number][]
 }
 
 type IoState = {

@@ -202,5 +202,29 @@ export function UpdatePresets(self: ModuleInstance): void {
 		}
 	}
 
+	for (const n of self.nodes) {
+		presets[`trunk_popt_E${n.ember_id}`] = {
+			category: `Status info`,
+			name: `Trunk RX optical power for ${n.name}`,
+			type: 'button',
+			style: {
+				text: `TRUNKS $(stageracer:node_name_N${n.ember_id})`,
+				size: '14',
+				alignment: 'center:top',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+			},
+			feedbacks: [
+				{
+					feedbackId: 'trunk_rx_popt',
+					options: {
+						ember_id: n.ember_id,
+					},
+				},
+			],
+			steps: [],
+		}
+	}
+
 	self.setPresetDefinitions(presets)
 }

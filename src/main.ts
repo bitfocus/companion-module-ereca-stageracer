@@ -122,6 +122,10 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		return this.protocol.ios
 	}
 
+	nodeByEmberId(ember_id: number): Node | undefined {
+		return this.nodes.find((n) => n.ember_id == ember_id)
+	}
+
 	get protoFilter(): string[] {
 		return (this.config.protoFilter || '')
 			.split(',')
@@ -148,6 +152,13 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		return ios.map((io) => ({
 			id: io.key,
 			label: io.name,
+		}))
+	}
+
+	nodeChoices(): DropdownChoice[] {
+		return this.nodes.map((n) => ({
+			id: n.ember_id,
+			label: n.name,
 		}))
 	}
 
