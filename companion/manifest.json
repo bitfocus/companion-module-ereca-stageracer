@@ -3,7 +3,7 @@
 	"name": "ereca-stageracer",
 	"shortname": "stageracer",
 	"description": "Ereca StageRacer module for Companion",
-	"version": "1.0.1",
+	"version": "1.1.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-ereca-stageracer.git",
 	"bugs": "https://github.com/bitfocus/companion-module-ereca-stageracer/issues",
