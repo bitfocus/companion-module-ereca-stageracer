@@ -450,6 +450,7 @@ type ControllerStatus = {
 	temp_fpga: number
 	temp_mb: number
 	trunk_popt: [number, number, number, number][]
+	trunk_temp: number[]
 }
 
 type IoState = {

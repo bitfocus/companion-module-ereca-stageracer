@@ -224,6 +224,28 @@ export function UpdatePresets(self: ModuleInstance): void {
 			],
 			steps: [],
 		}
+
+		presets[`temp_E${n.ember_id}`] = {
+			category: `Status info`,
+			name: `Temperature status for ${n.name}`,
+			type: 'button',
+			style: {
+				text: `TEMP $(stageracer:node_name_N${n.ember_id})`,
+				size: '14',
+				alignment: 'center:top',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+			},
+			feedbacks: [
+				{
+					feedbackId: 'node_temp',
+					options: {
+						ember_id: n.ember_id,
+					},
+				},
+			],
+			steps: [],
+		}
 	}
 
 	self.setPresetDefinitions(presets)

@@ -287,5 +287,79 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 		},
 	}
 
+	feedbacks['node_temp'] = {
+		type: 'advanced',
+		name: 'Node temperature',
+		description: 'Draws meters representing various temperature measurements',
+		options: [
+			{
+				type: 'dropdown',
+				label: 'Node',
+				id: 'ember_id',
+				default: 0,
+				choices: choices_nodes,
+			},
+		],
+		callback: (feedback) => {
+			const iw = feedback.image?.width || 10
+			const ih = feedback.image?.height || 10
+
+			const ember_id = feedback.options.ember_id
+			if (!ember_id || typeof ember_id !== 'number') {
+				return {}
+			}
+
+			const n = self.nodeByEmberId(ember_id)
+			if (!n?.status) {
+				return {}
+			}
+
+			const cst = n.status.controller_status
+
+			const temps = [
+				cst.temp_fpga,
+				cst.temp_mb,
+				cst.trunk_temp[0],
+				cst.trunk_temp[1],
+				cst.trunk_temp[2],
+				cst.trunk_temp[3],
+			]
+
+			const ntemps = temps.length
+
+			const bars = temps.map((temp, i) => {
+				temp = Math.round(temp)
+
+				if (temp > 100) {
+					temp = 100
+				} else if (temp < 0) {
+					temp = 0
+				}
+
+				return graphics.bar({
+					width: iw,
+					height: ih,
+					colors: [
+						{ size: 60, color: combineRgb(0, 255, 0), background: combineRgb(0, 255, 0), backgroundOpacity: 64 },
+						{ size: 20, color: combineRgb(255, 255, 0), background: combineRgb(255, 255, 0), backgroundOpacity: 64 },
+						{ size: 20, color: combineRgb(255, 0, 0), background: combineRgb(255, 0, 0), backgroundOpacity: 64 },
+					],
+					barLength: Math.trunc(ih / 2.1),
+					barWidth: Math.trunc(iw / (ntemps * 2)),
+					value: temp,
+					type: 'vertical',
+					reverse: false,
+					offsetX: Math.trunc(iw / (ntemps * 4) + (iw / ntemps) * i),
+					offsetY: Math.trunc(ih / 2),
+					opacity: 255,
+				})
+			})
+
+			return {
+				imageBuffer: graphics.stackImage(bars),
+			}
+		},
+	}
+
 	self.setFeedbackDefinitions(feedbacks)
 }
