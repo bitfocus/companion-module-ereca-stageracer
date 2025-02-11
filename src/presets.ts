@@ -246,6 +246,28 @@ export function UpdatePresets(self: ModuleInstance): void {
 			],
 			steps: [],
 		}
+
+		presets[`psu_E${n.ember_id}`] = {
+			category: `Status info`,
+			name: `Power supply status for ${n.name}`,
+			type: 'button',
+			style: {
+				text: `PSU $(stageracer:node_name_N${n.ember_id})`,
+				size: '14',
+				alignment: 'center:top',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+			},
+			feedbacks: [
+				{
+					feedbackId: 'node_psu',
+					options: {
+						ember_id: n.ember_id,
+					},
+				},
+			],
+			steps: [],
+		}
 	}
 
 	self.setPresetDefinitions(presets)

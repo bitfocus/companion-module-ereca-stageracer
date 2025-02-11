@@ -243,14 +243,22 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 			}
 
 			const n = self.nodeByEmberId(ember_id)
-			if (!n?.status) {
+			if (!n) {
 				return {}
 			}
 
-			const popt = n?.status.controller_status.trunk_popt
+			let popt: [number, number, number, number][] = []
+
+			if (self.protocol.mode != 'simulator') {
+				if (!n?.status) {
+					return {}
+				}
+
+				popt = n?.status.controller_status.trunk_popt
+			}
 
 			const bars = ['A', 'B', 'C', 'D'].map((_t, i) => {
-				let tpopt = Math.min(...popt[i]) || -40
+				let tpopt = Math.min(...(popt[i] || [-40]))
 
 				if (tpopt < -40) {
 					tpopt = -40
@@ -310,20 +318,21 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 			}
 
 			const n = self.nodeByEmberId(ember_id)
-			if (!n?.status) {
+			if (!n) {
 				return {}
 			}
 
-			const cst = n.status.controller_status
+			let temps = [0, 0, 0, 0, 0, 0]
 
-			const temps = [
-				cst.temp_fpga,
-				cst.temp_mb,
-				cst.trunk_temp[0],
-				cst.trunk_temp[1],
-				cst.trunk_temp[2],
-				cst.trunk_temp[3],
-			]
+			if (self.protocol.mode != 'simulator') {
+				if (!n?.status) {
+					return {}
+				}
+
+				const cst = n.status.controller_status
+
+				temps = [cst.temp_fpga, cst.temp_mb, cst.trunk_temp[0], cst.trunk_temp[1], cst.trunk_temp[2], cst.trunk_temp[3]]
+			}
 
 			const ntemps = temps.length
 
@@ -352,6 +361,80 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 					offsetX: Math.trunc(iw / (ntemps * 4) + (iw / ntemps) * i),
 					offsetY: Math.trunc(ih / 2),
 					opacity: 255,
+				})
+			})
+
+			return {
+				imageBuffer: graphics.stackImage(bars),
+			}
+		},
+	}
+
+	feedbacks['node_psu'] = {
+		type: 'advanced',
+		name: 'Node power supply status',
+		description: 'Draws two circles representing the status of both PSUs',
+		options: [
+			{
+				type: 'dropdown',
+				label: 'Node',
+				id: 'ember_id',
+				default: 0,
+				choices: choices_nodes,
+			},
+		],
+		callback: (feedback) => {
+			const iw = feedback.image?.width || 10
+			const ih = feedback.image?.height || 10
+
+			const ember_id = feedback.options.ember_id
+			if (!ember_id || typeof ember_id !== 'number') {
+				return {}
+			}
+
+			const n = self.nodeByEmberId(ember_id)
+			if (!n) {
+				return {}
+			}
+
+			let psus_v = [12, 12]
+
+			if (self.protocol.mode != 'simulator') {
+				if (!n?.status) {
+					return {}
+				}
+
+				const cst = n.status.controller_status
+
+				psus_v = [cst.vpsu1, cst.vpsu2]
+			}
+
+			const bars = psus_v.map((v, i) => {
+				let color = combineRgb(255, 0, 0)
+				if (v > 11.7) {
+					color = combineRgb(0, 255, 0)
+				} else if (v > 11.5) {
+					color = combineRgb(255, 255, 0)
+				}
+
+				const radius = Math.round(iw / 6)
+				const options = {
+					radius: radius,
+					color: color,
+					opacity: 255,
+				}
+
+				const circle = graphics.circle(options)
+
+				return graphics.icon({
+					width: iw,
+					height: ih,
+					custom: circle,
+					type: 'custom',
+					customHeight: 2 * radius,
+					customWidth: 2 * radius,
+					offsetX: (iw / 2) * i + 4,
+					offsetY: Math.trunc(iw * 0.6),
 				})
 			})
 
