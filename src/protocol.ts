@@ -153,6 +153,15 @@ export class RacerProto {
 			}
 		}
 
+		const node_status = transient.node_status
+		for (const nst of node_status) {
+			const n = this.nodes[nst.node_id]
+
+			n.status = nst
+
+			this.updateIoActivity(n)
+		}
+
 		if (needs_port_refresh) {
 			// Reload all IOs.
 			//
@@ -194,6 +203,8 @@ export class RacerProto {
 
 			this.module.updatePorts()
 		}
+
+		self.checkFeedbacks('in_signal_active')
 	}
 
 	addIo(node: Node, parent_proto: Protocol, parent_io: IoData | undefined, io: Io, indices: number[]): void {
@@ -358,6 +369,61 @@ export class RacerProto {
 
 		return undefined
 	}
+
+	public updateIoActivity(n: Node): void {
+		const io_state = n.status?.io_state
+
+		if (!io_state) {
+			return
+		}
+
+		const update_io_activity = (
+			proto: Protocol,
+			count: number,
+			bitfield: number | number[],
+			top_level: number | undefined,
+		) => {
+			for (let i = 0; i < count; i++) {
+				let is_active
+
+				if (bitfield instanceof Array) {
+					// Large bitfields are broken in 32bit chunks to work around
+					// Javascript's representation of integers as double fp
+					// values.
+					const bf = bitfield[i >> 5]
+					const off = i & 31
+
+					is_active = (bf & (1 << off)) != 0
+				} else {
+					is_active = (bitfield & (1 << i)) != 0
+				}
+
+				let key
+
+				if (top_level) {
+					key = [`E${n.ember_id}`, proto, top_level, i + 1]
+				} else {
+					key = [`E${n.ember_id}`, proto, i + 1]
+				}
+
+				key = key.join('_')
+
+				const io = this.ios[key]
+
+				if (io) {
+					io.active = is_active
+				}
+			}
+		}
+
+		update_io_activity('SDI', 24, io_state.sdi_activity, undefined)
+		update_io_activity('ANALO_IN', 16, io_state.analog_in_activity, undefined)
+		update_io_activity('GPI', 8, io_state.gpio_in_activity, undefined)
+		update_io_activity('MADI', 64, io_state.madi_in_activity, 1)
+		update_io_activity('DANTE', 64, io_state.dante_in_activity, 1)
+		update_io_activity('RS', 8, io_state.rs_in_activity, undefined)
+		update_io_activity('AES', 10, io_state.aes_in_activity, undefined)
+	}
 }
 
 export type NodeId = string
@@ -377,11 +443,33 @@ type ApiMeta = {
 	identifier?: string
 }
 
+type ControllerStatus = {
+	temp_fpga: number
+	temp_mb: number
+}
+
+type IoState = {
+	sdi_activity: number
+	analog_in_activity: number
+	gpio_in_activity: number
+	madi_in_activity: [number, number]
+	dante_in_activity: [number, number]
+	rs_in_activity: number
+	aes_in_activity: number
+}
+
+type NodeStatus = {
+	node_id: NodeId
+	controller_status: ControllerStatus
+	io_state: IoState
+}
+
 type Transient = {
 	local_node_id: NodeId
 	root_node_id: NodeId
 	routing_token: SyncToken
 	node_tokens: [NodeId, SyncToken][]
+	node_status: NodeStatus[]
 }
 
 export type Node = {
@@ -390,6 +478,7 @@ export type Node = {
 	sync_token: number
 	ios_by_proto: { [key: Protocol]: Io[] }
 	ember_id: number
+	status: NodeStatus | undefined
 }
 
 export type Io = {
@@ -414,6 +503,7 @@ export class IoData {
 	path: Path
 	src_key: IoKey | undefined
 	active_standard: Standard | undefined
+	active: boolean = false
 
 	public get enabled(): boolean {
 		return this.io.en

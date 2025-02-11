@@ -1,4 +1,4 @@
-import { combineRgb, CompanionPresetDefinitions } from '@companion-module/base'
+import { combineRgb, CompanionPresetDefinitions, CompanionPresetFeedback } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
 
 export function UpdatePresets(self: ModuleInstance): void {
@@ -154,6 +154,32 @@ export function UpdatePresets(self: ModuleInstance): void {
 
 		const dproto = io.displayProto()
 
+		const feedbacks: CompanionPresetFeedback[] = [
+			{
+				feedbackId: `selected_${dir.toLowerCase()}`,
+				style: {
+					bgcolor: bg_select_col,
+					color: combineRgb(0, 0, 0),
+				},
+				options: options,
+			},
+			{
+				feedbackId: `take_tally_${dir.toLowerCase()}`,
+				style: {
+					bgcolor: combineRgb(255, 0, 0),
+					color: combineRgb(255, 255, 255),
+				},
+				options: options,
+			},
+		]
+
+		if (dir === 'IN') {
+			feedbacks.push({
+				feedbackId: 'in_signal_active',
+				options: options,
+			})
+		}
+
 		presets[`select_io_${io.key}`] = {
 			category: `IO ${dproto}_${dir}`,
 			name: `Select ${io.desc}: ${io.name}`,
@@ -164,24 +190,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
 			},
-			feedbacks: [
-				{
-					feedbackId: `selected_${dir.toLowerCase()}`,
-					style: {
-						bgcolor: bg_select_col,
-						color: combineRgb(0, 0, 0),
-					},
-					options: options,
-				},
-				{
-					feedbackId: `take_tally_${dir.toLowerCase()}`,
-					style: {
-						bgcolor: combineRgb(255, 0, 0),
-						color: combineRgb(255, 255, 255),
-					},
-					options: options,
-				},
-			],
+			feedbacks: feedbacks,
 			steps: [
 				{
 					down: [

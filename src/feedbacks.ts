@@ -1,5 +1,6 @@
 import { combineRgb, CompanionFeedbackDefinitions } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
+import { graphics } from 'companion-module-utils'
 
 export function UpdateFeedbacks(self: ModuleInstance): void {
 	const feedbacks: CompanionFeedbackDefinitions = {}
@@ -155,6 +156,57 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 			}
 
 			return feedback.options.io_key == self.pendingRoute.dst
+		},
+	}
+
+	feedbacks['in_signal_active'] = {
+		type: 'advanced',
+		name: 'Input has a valid signal',
+		description: 'Draw a green corner if the input specified currently receives a valid signal',
+		options: [
+			{
+				type: 'dropdown',
+				label: 'Input',
+				id: 'io_key',
+				default: 0,
+				choices: choices_in,
+			},
+		],
+		callback: (feedback) => {
+			const io_key = feedback.options.io_key
+			if (!io_key || typeof io_key !== 'string') {
+				return {}
+			}
+
+			const io = self.ios[io_key]
+
+			if (!io?.active) {
+				return {}
+			}
+
+			const r = 6
+			const options = {
+				radius: r,
+				color: combineRgb(0, 255, 0),
+				opacity: 150,
+			}
+
+			const circle = graphics.circle(options)
+
+			const circleIcon = graphics.icon({
+				width: feedback.image?.width || 10,
+				height: feedback.image?.height || 10,
+				custom: circle,
+				type: 'custom',
+				customHeight: 2 * r,
+				customWidth: 2 * r,
+				offsetX: 3,
+				offsetY: 3,
+			})
+
+			return {
+				imageBuffer: circleIcon,
+			}
 		},
 	}
 

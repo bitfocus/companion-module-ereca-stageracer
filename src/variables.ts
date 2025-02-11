@@ -29,6 +29,21 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		vval[`io_name_${io.key}`] = io.name
 	}
 
+	for (const n of self.nodes) {
+		vdef.push({
+			name: `Label of node ${n.ember_id}`,
+			variableId: `node_name_${n.ember_id}`,
+		})
+		vval[`node_name_${n.ember_id}`] = n.name
+
+		if (self.protocol.mode !== 'simulator') {
+			vdef.push({
+				name: `Label of node ${n.ember_id}`,
+				variableId: `node_name_${n.ember_id}`,
+			})
+		}
+	}
+
 	self.setVariableDefinitions(vdef)
 	self.setVariableValues(vval)
 
@@ -53,6 +68,12 @@ export function UpdateSelectionVariables(self: ModuleInstance): void {
 			}
 		}
 	}
+
+	self.setVariableValues(vval)
+}
+
+export function UpdateTransientVariables(self: ModuleInstance): void {
+	const vval: CompanionVariableValues = {}
 
 	self.setVariableValues(vval)
 }
