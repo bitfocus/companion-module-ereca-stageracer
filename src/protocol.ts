@@ -8,6 +8,7 @@ export class RacerProto {
 	poll_tout: NodeJS.Timeout | undefined = undefined
 	ios: { [key: IoKey]: IoData } = {}
 	iokey_by_path: { [key: Path]: IoKey } = {}
+	active_ios: Set<IoKey> = new Set()
 	meta: ApiMeta | undefined
 	local_node_id: NodeId | undefined
 
@@ -204,7 +205,7 @@ export class RacerProto {
 			this.module.updatePorts()
 		}
 
-		self.checkFeedbacks('in_signal_active')
+		self.checkFeedbacks('signal_active')
 	}
 
 	addIo(node: Node, parent_proto: Protocol, parent_io: IoData | undefined, io: Io, indices: number[]): void {
@@ -408,21 +409,23 @@ export class RacerProto {
 
 				key = key.join('_')
 
-				const io = this.ios[key]
-
-				if (io) {
-					io.active = is_active
+				if (is_active) {
+					this.active_ios.add(key)
+				} else {
+					this.active_ios.delete(key)
 				}
 			}
 		}
 
 		update_io_activity('SDI', 24, io_state.sdi_activity, undefined)
 		update_io_activity('ANALO_IN', 16, io_state.analog_in_activity, undefined)
+		update_io_activity('ANALO_OUT', 16, io_state.analog_out_activity, undefined)
 		update_io_activity('GPI', 8, io_state.gpio_in_activity, undefined)
+		update_io_activity('GPO', 8, io_state.gpio_out_activity, undefined)
 		update_io_activity('MADI', 64, io_state.madi_in_activity, 1)
+		update_io_activity('MADI', 64, io_state.madi_out_activity, 2)
 		update_io_activity('DANTE', 64, io_state.dante_in_activity, 1)
-		update_io_activity('RS', 8, io_state.rs_in_activity, undefined)
-		update_io_activity('AES', 10, io_state.aes_in_activity, undefined)
+		update_io_activity('DANTE', 64, io_state.dante_out_activity, 2)
 	}
 }
 
@@ -451,9 +454,13 @@ type ControllerStatus = {
 type IoState = {
 	sdi_activity: number
 	analog_in_activity: number
+	analog_out_activity: number
 	gpio_in_activity: number
+	gpio_out_activity: number
 	madi_in_activity: [number, number]
+	madi_out_activity: [number, number]
 	dante_in_activity: [number, number]
+	dante_out_activity: [number, number]
 	rs_in_activity: number
 	aes_in_activity: number
 }
@@ -503,7 +510,6 @@ export class IoData {
 	path: Path
 	src_key: IoKey | undefined
 	active_standard: Standard | undefined
-	active: boolean = false
 
 	public get enabled(): boolean {
 		return this.io.en

@@ -171,14 +171,11 @@ export function UpdatePresets(self: ModuleInstance): void {
 				},
 				options: options,
 			},
-		]
-
-		if (dir === 'IN') {
-			feedbacks.push({
-				feedbackId: 'in_signal_active',
+			{
+				feedbackId: 'signal_active',
 				options: options,
-			})
-		}
+			},
+		]
 
 		presets[`select_io_${io.key}`] = {
 			category: `IO ${dproto}_${dir}`,

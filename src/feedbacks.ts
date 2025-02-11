@@ -159,17 +159,17 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 		},
 	}
 
-	feedbacks['in_signal_active'] = {
+	feedbacks['signal_active'] = {
 		type: 'advanced',
-		name: 'Input has a valid signal',
-		description: 'Draw a green corner if the input specified currently receives a valid signal',
+		name: 'Port has a valid signal',
+		description: 'Draw a green/orange dot if the port specified currently receives/transmits a valid signal',
 		options: [
 			{
 				type: 'dropdown',
 				label: 'Input',
 				id: 'io_key',
 				default: 0,
-				choices: choices_in,
+				choices: [...choices_in, ...choices_out],
 			},
 		],
 		callback: (feedback) => {
@@ -178,17 +178,26 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				return {}
 			}
 
+			if (!self.protocol.active_ios.has(io_key)) {
+				return {}
+			}
+
 			const io = self.ios[io_key]
 
-			if (!io?.active) {
+			if (!io) {
 				return {}
+			}
+
+			let color = combineRgb(14, 188, 0)
+			if (io.isOutput()) {
+				color = combineRgb(214, 200, 0)
 			}
 
 			const r = 6
 			const options = {
 				radius: r,
-				color: combineRgb(0, 255, 0),
-				opacity: 150,
+				color: color,
+				opacity: 200,
 			}
 
 			const circle = graphics.circle(options)
