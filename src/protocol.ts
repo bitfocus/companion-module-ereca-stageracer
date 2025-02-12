@@ -1,6 +1,7 @@
 import { InstanceStatus } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
 import { Agent, fetch, RequestInit, Response, Headers } from 'undici'
+import { UpdateTransientVariables } from './variables.js'
 
 export class RacerProto {
 	module: ModuleInstance
@@ -205,6 +206,7 @@ export class RacerProto {
 			this.module.updatePorts()
 		}
 
+		UpdateTransientVariables(self)
 		self.checkFeedbacks('signal_active', 'trunk_rx_popt', 'node_temp', 'node_psu')
 	}
 

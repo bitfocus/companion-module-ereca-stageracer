@@ -208,7 +208,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 			name: `Trunk RX optical power for ${n.name}`,
 			type: 'button',
 			style: {
-				text: `TRUNKS $(stageracer:node_name_N${n.ember_id})`,
+				text: `TRUNKS $(stageracer:node_name_E${n.ember_id})`,
 				size: '14',
 				alignment: 'center:top',
 				color: combineRgb(255, 255, 255),
@@ -230,7 +230,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 			name: `Temperature status for ${n.name}`,
 			type: 'button',
 			style: {
-				text: `TEMP $(stageracer:node_name_N${n.ember_id})`,
+				text: `TEMP $(stageracer:node_name_E${n.ember_id})`,
 				size: '14',
 				alignment: 'center:top',
 				color: combineRgb(255, 255, 255),
@@ -252,7 +252,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 			name: `Power supply status for ${n.name}`,
 			type: 'button',
 			style: {
-				text: `PSU $(stageracer:node_name_N${n.ember_id})`,
+				text: `PSU $(stageracer:node_name_E${n.ember_id})`,
 				size: '14',
 				alignment: 'center:top',
 				color: combineRgb(255, 255, 255),
