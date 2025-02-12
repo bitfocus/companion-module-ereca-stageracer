@@ -4,12 +4,13 @@ import type { CompanionVariableDefinition, CompanionVariableValues } from '@comp
 export function UpdateVariableDefinitions(self: ModuleInstance): void {
 	const vdef: CompanionVariableDefinition[] = []
 	const vval: CompanionVariableValues = {}
+	const proto = self.protocol
 
 	vdef.push({
 		name: `In the simulator, contains the name of the config. Otherwise the name of the node Companion is connected to.`,
 		variableId: `target_id`,
 	})
-	vval['target_id'] = self.protocol.meta?.identifier ?? self.protocol.localNode()?.name
+	vval['target_id'] = proto.meta?.identifier ?? proto.localNode()?.name
 
 	vdef.push({
 		name: 'Label of the selected destination',
@@ -38,7 +39,8 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 
 			const source = io.sourcePath()
 			if (source) {
-				const src_io = self.protocol.ios[source]
+				const src_key = proto.iokey_by_path[source]
+				const src_io = proto.ios[src_key]
 
 				if (src_io) {
 					src_label = src_io.name
