@@ -5,6 +5,7 @@ export interface ModuleConfig {
 	useHttps: boolean
 	apiToken: string
 	take: boolean
+	enableTally: boolean
 	protoFilter: string
 	pollInterval: number
 }
@@ -55,6 +56,15 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			id: 'take',
 			label: 'Enable Take?',
 			width: 6,
+			default: false,
+		},
+		{
+			type: 'checkbox',
+			id: 'enableTally',
+			label: 'Enable tally (TSL)',
+			width: 6,
+			tooltip:
+				'When enabled, source tally follows routing and updates multiviewer UMD text/tally via TSL v5 on UDP 9801. Disable to avoid overwriting PIP names.',
 			default: false,
 		},
 	]
