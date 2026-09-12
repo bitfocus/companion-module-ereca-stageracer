@@ -198,5 +198,68 @@ export function UpdateActions(self: ModuleInstance): void {
 		},
 	}
 
+	actions['set_source_tally'] = {
+		name: 'Set source tally',
+		description:
+			'Set red, green, or amber tally for a source. Follows routing to destinations and updates multiviewer PIPs via TSL v5 (UDP 9801).',
+		options: [
+			{
+				type: 'dropdown',
+				label: 'Source',
+				id: 'io_key',
+				default: choices_in[0]?.id ?? 'NILIO',
+				choices: choices_in.filter((c) => c.id !== 'NILIO'),
+			},
+			{
+				type: 'dropdown',
+				label: 'Colour',
+				id: 'colour',
+				default: 'red',
+				choices: [
+					{ id: 'red', label: 'Red' },
+					{ id: 'green', label: 'Green' },
+					{ id: 'amber', label: 'Amber' },
+				],
+			},
+			{
+				type: 'dropdown',
+				label: 'State',
+				id: 'state',
+				default: 'true',
+				choices: [
+					{ id: 'true', label: 'On' },
+					{ id: 'false', label: 'Off' },
+				],
+				allowCustom: true,
+				tooltip: 'On/Off, or a variable/expression that resolves to true or false',
+			},
+		],
+		callback: async (action, context) => {
+			const key = action.options.io_key
+			if (!key || typeof key !== 'string' || key === 'NILIO') {
+				return
+			}
+
+			if (!self.ios[key]) {
+				return
+			}
+
+			const colourRaw = action.options.colour
+			const colour = colourRaw === 'green' || colourRaw === 'amber' ? colourRaw : 'red'
+
+			const stateOpt = action.options.state
+			let on: boolean
+			if (typeof stateOpt === 'boolean') {
+				on = stateOpt
+			} else {
+				const stateRaw = await context.parseVariablesInString(`${stateOpt ?? ''}`)
+				const stateNorm = stateRaw.trim().toLowerCase()
+				on = ['true', '1', 'on', 'yes'].includes(stateNorm)
+			}
+
+			self.tally.setSourceTally(key, colour, on)
+		},
+	}
+
 	self.setActionDefinitions(actions)
 }

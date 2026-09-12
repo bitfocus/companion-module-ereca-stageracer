@@ -7,10 +7,12 @@ import { UpdateFeedbacks } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
 import { UpdateVariableDefinitions } from './variables.js'
 import { RacerProto, Node, IoKey, IoData } from './protocol.js'
+import { TallyManager } from './tally.js'
 
 export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig // Setup in init()
 	proto: RacerProto | undefined = undefined
+	tally: TallyManager
 	curStatus: [InstanceStatus, string | undefined] | undefined = undefined
 	selectedDestination: IoKey | undefined = undefined
 	// When using "take", this contains the pending routing instructions
@@ -18,6 +20,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 	constructor(internal: unknown) {
 		super(internal)
+		this.tally = new TallyManager(this)
 	}
 
 	async init(config: ModuleConfig): Promise<void> {
@@ -26,6 +29,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 	// When module gets deleted
 	async destroy(): Promise<void> {
+		this.tally.destroy()
+
 		if (this.proto) {
 			this.proto.destroy()
 			this.proto = undefined
@@ -49,6 +54,12 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			this.config.useHttps = true
 		}
 
+		this.tally.setHost(this.config.host || '')
+
+		if (!this.config.enableTally) {
+			this.tally.disableOutput()
+		}
+
 		if (this.proto) {
 			this.proto.destroy()
 			this.proto = undefined
@@ -59,6 +70,10 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 		if (!this.config.take) {
 			this.pendingRoute = undefined
+		}
+
+		if (this.config.enableTally) {
+			this.tally.sync()
 		}
 	}
 
