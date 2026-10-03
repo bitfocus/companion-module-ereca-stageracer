@@ -204,6 +204,7 @@ export class RacerProto {
 			}
 
 			this.module.updatePorts()
+			this.module.tally.sync()
 		}
 
 		UpdateTransientVariables(self)
@@ -222,6 +223,8 @@ export class RacerProto {
 		if (iod.protocol == 'SDI_PV' && parent_io) {
 			// For previews we use the multiviewer name
 			iod.name = `F${indices[indices.length - 1]} ${parent_io.name}`
+			iod.parent_key = parent_io.key
+			iod.frame_index = indices[indices.length - 1]
 		}
 
 		// We only care about DANTE_CH protocols, not the DANTE dummy node
@@ -516,6 +519,10 @@ export class IoData {
 	path: Path
 	src_key: IoKey | undefined
 	active_standard: Standard | undefined
+	/** Parent multiviewer IO key (SDI_PV only) */
+	parent_key: IoKey | undefined
+	/** 1-based FRAME index within parent multiviewer (SDI_PV only) */
+	frame_index: number | undefined
 
 	public get enabled(): boolean {
 		return this.io.en
@@ -622,6 +629,17 @@ export class IoData {
 
 	public isMultiview(): boolean {
 		return !!this.getAttr('multi_view')
+	}
+
+	/** TSL UMD v5 screen identifier from multiviewer config, if present */
+	public tslScreen(): number | undefined {
+		const conf = this.getAttr('multi_view')
+		if (!conf || conf.tsl_screen === undefined || conf.tsl_screen === null) {
+			return undefined
+		}
+
+		const screen = Number(conf.tsl_screen)
+		return Number.isFinite(screen) ? screen : undefined
 	}
 
 	public activeStandardBw(): number | undefined {
